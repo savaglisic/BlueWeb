@@ -1,7 +1,34 @@
-import { CssVarsProvider, Sheet, Box, Typography, Input, Button } from '@mui/joy';
+import React, { useState } from 'react';
+import axios from 'axios';
+import { CssVarsProvider, Sheet, Box, Typography, Input, Button, Alert } from '@mui/joy';
 import '@fontsource/roboto';
 
 const LoginPage = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState(false);
+
+  const handleLogin = async () => {
+    try {
+      const response = await axios.post('/api/login', { email, password });
+      if (response.data.status === 'login_successful') {
+        setMessage('Login successful! Redirecting...');
+        setError(false);
+        // Implement redirection logic here, e.g., redirect to a dashboard
+      } else if (response.data.status === 'incorrect_password') {
+        setMessage('Incorrect password. Please try again.');
+        setError(true);
+      } else if (response.data.status === 'email_not_whitelisted') {
+        setMessage('Email not whitelisted. Please contact support.');
+        setError(true);
+      }
+    } catch (error) {
+      setMessage('An error occurred during login. Please try again later.');
+      setError(true);
+    }
+  };  
+
   return (
     <CssVarsProvider>
       <Box
@@ -34,9 +61,30 @@ const LoginPage = () => {
           <Typography level="h4" component="h1" mb={2}>
             Welcome!
           </Typography>
-          <Input placeholder="Email" type="email" sx={{ mb: 1, width: '100%' }} />
-          <Input placeholder="Password" type="password" sx={{ mb: 1, width: '100%' }} />
-          <Button variant="solid" color="primary">
+          <Input
+            placeholder="Email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            sx={{ mb: 1, width: '100%' }}
+          />
+          <Input
+            placeholder="Password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            sx={{ mb: 1, width: '100%' }}
+          />
+          {message && (
+            <Alert
+              sx={{ mb: 1, width: '100%' }}
+              variant="soft"
+              color={error ? 'danger' : 'success'}
+            >
+              {message}
+            </Alert>
+          )}
+          <Button variant="solid" color="primary" onClick={handleLogin}>
             Login
           </Button>
         </Sheet>
@@ -46,6 +94,7 @@ const LoginPage = () => {
 };
 
 export default LoginPage;
+
 
 
 
