@@ -6,28 +6,82 @@ import '@fontsource/roboto';
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState(''); // New state for confirm password
   const [message, setMessage] = useState('');
   const [error, setError] = useState(false);
+  const [isNewUser, setIsNewUser] = useState(false); // State to track if it's a new user
 
   const handleLogin = async () => {
     try {
       const response = await axios.post('/api/login', { email, password });
-      if (response.data.status === 'login_successful') {
+      const { status } = response.data;
+  
+      if (status === 'login_successful') {
         setMessage('Login successful! Redirecting...');
         setError(false);
         // Implement redirection logic here, e.g., redirect to a dashboard
-      } else if (response.data.status === 'incorrect_password') {
+      } else if (status === 'incorrect_password') {
         setMessage('Incorrect password. Please try again.');
         setError(true);
-      } else if (response.data.status === 'email_not_whitelisted') {
+      } else if (status === 'email_not_whitelisted') {
         setMessage('Email not whitelisted. Please contact support.');
+        setError(true);
+      } else if (status === 'user_not_found_but_whitelisted') {
+        setMessage('No account found. Please create an account.');
+        setIsNewUser(true); // Trigger account creation mode
+        setError(false);
+      } else {
+        setMessage('An unexpected error occurred. Please try again.');
         setError(true);
       }
     } catch (error) {
-      setMessage('An error occurred during login. Please try again later.');
+      if (error.response && error.response.data && error.response.data.status) {
+        // Map the backend error to a user-friendly message
+        const status = error.response.data.status;
+        if (status === 'incorrect_password') {
+          setMessage('Incorrect password. Please try again.');
+        } else if (status === 'email_not_whitelisted') {
+          setMessage('Email not whitelisted. Please contact support.');
+        } else if (status === 'user_not_found_but_whitelisted') {
+          setMessage('No account found. Please create an account.');
+          setIsNewUser(true);
+        } else {
+          setMessage('An unexpected error occurred. Please try again.');
+        }
+      } else {
+        // Network error or other unexpected errors
+        setMessage('An error occurred during login. Please try again later.');
+      }
       setError(true);
     }
   };  
+
+  const handleCreateAccount = async () => {
+    if (password !== confirmPassword) {
+      setMessage('Passwords do not match. Please try again.');
+      setError(true);
+      return;
+    }
+
+    try {
+      const response = await axios.put('/api/update_user', {
+        email,
+        user_name: email.split('@')[0], // Simple username generation, you can adjust this
+        password,
+      });
+      if (response.data.status === 'update_successful') {
+        setMessage('Account created successfully! You can now log in.');
+        setError(false);
+        setIsNewUser(false); // Revert to login mode
+      } else {
+        setMessage('Failed to create account. Please try again.');
+        setError(true);
+      }
+    } catch (error) {
+      setMessage('An error occurred during account creation. Please try again later.');
+      setError(true);
+    }
+  };
 
   return (
     <CssVarsProvider>
@@ -59,7 +113,7 @@ const LoginPage = () => {
         >
           <img src="/blueweblogo.png" alt="Blue Web Logo" style={{ width: '200px', height: 'auto' }} />
           <Typography level="h4" component="h1" mb={2}>
-            Welcome!
+            {isNewUser ? 'Create Account' : 'Welcome!'}
           </Typography>
           <Input
             placeholder="Email"
@@ -75,6 +129,15 @@ const LoginPage = () => {
             onChange={(e) => setPassword(e.target.value)}
             sx={{ mb: 1, width: '100%' }}
           />
+          {isNewUser && (
+            <Input
+              placeholder="Confirm Password"
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              sx={{ mb: 1, width: '100%' }}
+            />
+          )}
           {message && (
             <Alert
               sx={{ mb: 1, width: '100%' }}
@@ -84,8 +147,8 @@ const LoginPage = () => {
               {message}
             </Alert>
           )}
-          <Button variant="solid" color="primary" onClick={handleLogin}>
-            Login
+          <Button variant="solid" color="primary" onClick={isNewUser ? handleCreateAccount : handleLogin}>
+            {isNewUser ? 'Create Account' : 'Login'}
           </Button>
         </Sheet>
       </Box>
@@ -94,8 +157,3 @@ const LoginPage = () => {
 };
 
 export default LoginPage;
-
-
-
-
-
