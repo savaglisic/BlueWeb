@@ -3,7 +3,7 @@ import axios from 'axios';
 import { CssVarsProvider, Sheet, Box, Typography, Input, Button, Alert } from '@mui/joy';
 import '@fontsource/roboto';
 
-const LoginPage = () => {
+const LoginPage = ({ onLoginSuccess }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState(''); // New state for confirm password
@@ -17,16 +17,11 @@ const LoginPage = () => {
       const { status } = response.data;
   
       if (status === 'login_successful') {
-        setMessage('Login successful! Redirecting...');
+        setMessage('Login successful!');
         setError(false);
   
-        // Store user details in local storage
-        localStorage.setItem('userEmail', email);
-  
-        // Redirect to the main menu
-        setTimeout(() => {
-          window.location.href = '/mainmenu'; // Change this to navigate programmatically if using React Router
-        }, 1000); // Slight delay for showing the message before redirecting
+        // Pass the user email back to App for state management
+        onLoginSuccess(email);
       } else if (status === 'incorrect_password') {
         setMessage('Incorrect password. Please try again.');
         setError(true);
@@ -59,7 +54,7 @@ const LoginPage = () => {
       }
       setError(true);
     }
-  };  
+  };
 
   const handleCreateAccount = async () => {
     if (password !== confirmPassword) {

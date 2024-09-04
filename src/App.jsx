@@ -1,12 +1,23 @@
-import React from 'react';
+import React, { useState } from 'react';
 import LoginPage from './LoginPage';
 import MainMenu from './MainMenu';
 
 const App = () => {
-  const isLoggedIn = !!localStorage.getItem('userEmail');
+  const [view, setView] = useState(localStorage.getItem('userEmail') ? 'mainMenu' : 'login');
 
-  return isLoggedIn ? <MainMenu /> : <LoginPage />;
+  const handleLoginSuccess = (email) => {
+    localStorage.setItem('userEmail', email);
+    setView('mainMenu');
+  };
+
+  return (
+    <>
+      {view === 'login' && <LoginPage onLoginSuccess={handleLoginSuccess} />}
+      {view === 'mainMenu' && <MainMenu />}
+    </>
+  );
 };
 
 export default App;
+
 
