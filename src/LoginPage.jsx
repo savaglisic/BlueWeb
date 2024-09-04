@@ -19,7 +19,14 @@ const LoginPage = () => {
       if (status === 'login_successful') {
         setMessage('Login successful! Redirecting...');
         setError(false);
-        // Implement redirection logic here, e.g., redirect to a dashboard
+  
+        // Store user details in local storage
+        localStorage.setItem('userEmail', email);
+  
+        // Redirect to the main menu
+        setTimeout(() => {
+          window.location.href = '/mainmenu'; // Change this to navigate programmatically if using React Router
+        }, 1000); // Slight delay for showing the message before redirecting
       } else if (status === 'incorrect_password') {
         setMessage('Incorrect password. Please try again.');
         setError(true);
@@ -28,7 +35,7 @@ const LoginPage = () => {
         setError(true);
       } else if (status === 'user_not_found_but_whitelisted') {
         setMessage('No account found. Please create an account.');
-        setIsNewUser(true); // Trigger account creation mode
+        setIsNewUser(true);
         setError(false);
       } else {
         setMessage('An unexpected error occurred. Please try again.');
@@ -36,7 +43,6 @@ const LoginPage = () => {
       }
     } catch (error) {
       if (error.response && error.response.data && error.response.data.status) {
-        // Map the backend error to a user-friendly message
         const status = error.response.data.status;
         if (status === 'incorrect_password') {
           setMessage('Incorrect password. Please try again.');
@@ -49,7 +55,6 @@ const LoginPage = () => {
           setMessage('An unexpected error occurred. Please try again.');
         }
       } else {
-        // Network error or other unexpected errors
         setMessage('An error occurred during login. Please try again later.');
       }
       setError(true);
