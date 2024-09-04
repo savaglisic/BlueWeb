@@ -35,7 +35,7 @@ const MainMenu = () => {
             boxSizing: 'border-box',
           }}
         >
-          <img src="/blueweblogo.png" alt="Blue Web Logo" style={{ width: '200px', height: 'auto', marginBottom: '20px' }} />
+          <img src="/blueweblogo.png" alt="Blue Web Logo" style={{ width: '200px', height: 'auto', marginBottom: '0px' }} />
           <Box
             sx={{
               display: 'flex',
