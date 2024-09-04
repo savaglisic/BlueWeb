@@ -56,11 +56,15 @@ const MainMenu = () => {
                 '&:hover': {
                   backgroundColor: '#1565c0',
                 },
+                display: 'flex',
+                flexDirection: 'column', // Align text and icon vertically
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
               variant="solid"
             >
-              <AddCircleOutlineIcon />
-              <Typography>Add Samples</Typography>
+              <AddCircleOutlineIcon fontSize="large" />
+              <Typography sx={{ color: 'white', marginTop: '8px' }}>Add Samples</Typography>
             </IconButton>
             <IconButton
               sx={{
@@ -73,11 +77,15 @@ const MainMenu = () => {
                 '&:hover': {
                   backgroundColor: '#1565c0',
                 },
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
               variant="solid"
             >
-              <DatabaseIcon />
-              <Typography>Fruit Quality Database</Typography>
+              <DatabaseIcon fontSize="large" />
+              <Typography sx={{ color: 'white', marginTop: '8px' }}>Fruit Quality Database</Typography>
             </IconButton>
             <IconButton
               sx={{
@@ -90,11 +98,15 @@ const MainMenu = () => {
                 '&:hover': {
                   backgroundColor: '#1565c0',
                 },
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
               variant="solid"
             >
-              <SearchIcon />
-              <Typography>Search Pedigree Database</Typography>
+              <SearchIcon fontSize="large" />
+              <Typography sx={{ color: 'white', marginTop: '8px' }}>Search Pedigree Database</Typography>
             </IconButton>
             <IconButton
               sx={{
@@ -107,11 +119,15 @@ const MainMenu = () => {
                 '&:hover': {
                   backgroundColor: '#1565c0',
                 },
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
               variant="solid"
             >
-              <SettingsIcon />
-              <Typography>Configure Sensory Panels</Typography>
+              <SettingsIcon fontSize="large" />
+              <Typography sx={{ color: 'white', marginTop: '8px' }}>Configure Sensory Panels</Typography>
             </IconButton>
           </Box>
         </Sheet>
@@ -121,3 +137,4 @@ const MainMenu = () => {
 };
 
 export default MainMenu;
+
