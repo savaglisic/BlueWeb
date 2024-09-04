@@ -4,9 +4,22 @@ import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import SearchIcon from '@mui/icons-material/Search';
 import DatabaseIcon from '@mui/icons-material/Storage';
 import SettingsIcon from '@mui/icons-material/Settings';
+import LogoutIcon from '@mui/icons-material/Logout'; // Add a logout icon
 import '@fontsource/roboto';
 
 const MainMenu = () => {
+  // Get the userEmail from local storage
+  const userEmail = localStorage.getItem('userEmail') || '';
+  
+  // Crop out the end of the email after the "@" symbol
+  const croppedEmail = userEmail.split('@')[0];
+
+  // Logout handler that clears localStorage and refreshes the page
+  const handleLogout = () => {
+    localStorage.removeItem('userEmail');
+    window.location.reload();
+  };
+
   return (
     <CssVarsProvider>
       <Box
@@ -35,7 +48,7 @@ const MainMenu = () => {
             boxSizing: 'border-box',
           }}
         >
-          <img src="/blueweblogo.png" alt="Blue Web Logo" style={{ width: '200px', height: 'auto', marginBottom: '0px' }} />
+          <img src="/blueweblogo.png" alt="Blue Web Logo" style={{ width: '200px', height: 'auto', marginBottom: '20px' }} />
           <Box
             sx={{
               display: 'flex',
@@ -57,7 +70,7 @@ const MainMenu = () => {
                   backgroundColor: '#1565c0',
                 },
                 display: 'flex',
-                flexDirection: 'column', // Align text and icon vertically
+                flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
@@ -130,6 +143,30 @@ const MainMenu = () => {
               <Typography sx={{ color: 'white', marginTop: '8px' }}>Configure Sensory Panels</Typography>
             </IconButton>
           </Box>
+
+          {/* Add a section to display cropped email and logout button */}
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              marginTop: 1,
+            }}
+          >
+            <Typography sx={{ color: 'black', marginRight: 1 }}>
+              {croppedEmail}
+            </Typography>
+            <IconButton
+              onClick={handleLogout}
+              sx={{
+                color: 'white',
+                '&:hover': {
+                  backgroundColor: '#d32f2f',
+                },
+              }}
+            >
+              <LogoutIcon />
+            </IconButton>
+          </Box>
         </Sheet>
       </Box>
     </CssVarsProvider>
@@ -137,4 +174,3 @@ const MainMenu = () => {
 };
 
 export default MainMenu;
-
