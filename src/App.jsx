@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import LoginPage from './LoginPage';
 import MainMenu from './MainMenu';
+import SearchPedigreeDatabase from './SearchPedigreeDatabase';
 
 const App = () => {
   const [view, setView] = useState(localStorage.getItem('userEmail') ? 'mainMenu' : 'login');
@@ -13,11 +14,10 @@ const App = () => {
   return (
     <>
       {view === 'login' && <LoginPage onLoginSuccess={handleLoginSuccess} />}
-      {view === 'mainMenu' && <MainMenu />}
+      {view === 'mainMenu' && <MainMenu setView={setView} />}
+      {view === 'searchPedigree' && <SearchPedigreeDatabase />}
     </>
   );
 };
 
 export default App;
-
-

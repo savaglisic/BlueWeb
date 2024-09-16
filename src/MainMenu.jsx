@@ -4,17 +4,13 @@ import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import SearchIcon from '@mui/icons-material/Search';
 import DatabaseIcon from '@mui/icons-material/Storage';
 import SettingsIcon from '@mui/icons-material/Settings';
-import LogoutIcon from '@mui/icons-material/Logout'; // Add a logout icon
+import LogoutIcon from '@mui/icons-material/Logout';
 import '@fontsource/roboto';
 
-const MainMenu = () => {
-  // Get the userEmail from local storage
+const MainMenu = ({ setView }) => {
   const userEmail = localStorage.getItem('userEmail') || '';
-  
-  // Crop out the end of the email after the "@" symbol
   const croppedEmail = userEmail.split('@')[0];
 
-  // Logout handler that clears localStorage and refreshes the page
   const handleLogout = () => {
     localStorage.removeItem('userEmail');
     window.location.reload();
@@ -117,6 +113,7 @@ const MainMenu = () => {
                 justifyContent: 'center',
               }}
               variant="solid"
+              onClick={() => setView('searchPedigree')}  
             >
               <SearchIcon fontSize="large" />
               <Typography sx={{ color: 'white', marginTop: '8px' }}>Search Pedigree Database</Typography>
@@ -144,17 +141,8 @@ const MainMenu = () => {
             </IconButton>
           </Box>
 
-          {/* Add a section to display cropped email and logout button */}
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              marginTop: 1,
-            }}
-          >
-            <Typography sx={{ color: 'black', marginRight: 1 }}>
-              {croppedEmail}
-            </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', marginTop: 1 }}>
+            <Typography sx={{ color: 'black', marginRight: 1 }}>{croppedEmail}</Typography>
             <IconButton
               onClick={handleLogout}
               sx={{
