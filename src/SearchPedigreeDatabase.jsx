@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef } from 'react'; 
 import { Box, Typography, CssVarsProvider, Input, Button, CircularProgress } from '@mui/joy';
 import axios from 'axios';
 
@@ -21,7 +21,7 @@ const SearchPedigreeDatabase = () => {
     setLoading(true);
 
     try {
-      const response = await axios.get(`http://localhost:5000/search_genotype`, {
+      const response = await axios.get('http://localhost:5000/search_genotype', {
         params: { genotype: searchTerm },
       });
       setSearchResults(response.data);
@@ -98,17 +98,21 @@ const SearchPedigreeDatabase = () => {
             <>
               {/* Horizontal Row of Buttons */}
               <Box sx={{ display: 'flex', overflowX: 'auto', marginTop: 2 }}>
-                {Object.keys(searchResults).map((resultKey) => (
-                  <Button
-                    key={resultKey}
-                    onClick={() => {
-                      categoryRefs.current[resultKey]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }}
-                    sx={{ marginRight: 1 }}
-                  >
-                    {resultKey.replace('_', ' ').toUpperCase()}
-                  </Button>
-                ))}
+                {Object.keys(searchResults).map((resultKey) => {
+                  // Remove '_RESULTS' suffix and format label
+                  const label = resultKey.replace('_RESULTS', '').replace('_', ' ').toUpperCase();
+                  return (
+                    <Button
+                      key={resultKey}
+                      onClick={() => {
+                        categoryRefs.current[resultKey]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }}
+                      sx={{ marginRight: 1 }}
+                    >
+                      {label}
+                    </Button>
+                  );
+                })}
               </Box>
 
               {/* Search Results Box */}
@@ -138,37 +142,43 @@ const SearchPedigreeDatabase = () => {
                   },
                 }}
               >
-                {Object.keys(searchResults).map((resultKey) => (
-                  <Box key={resultKey} sx={{ marginBottom: 2 }}>
-                    <Typography
-                      variant="subtitle1"
-                      sx={{ fontWeight: 'bold', marginTop: 1 }}
-                      ref={(el) => {
-                        categoryRefs.current[resultKey] = el;
-                      }}
-                    >
-                      {resultKey.replace('_', ' ').toUpperCase()} RESULTS:
-                    </Typography>
-                    {searchResults[resultKey].length > 0 ? (
-                      searchResults[resultKey].map((result, idx) => (
-                        <Box
-                          key={idx}
-                          sx={{ marginBottom: 1, padding: 1, borderBottom: '1px solid #ddd' }}
-                        >
-                          {Object.keys(result).map((key) => (
-                            <Typography key={key} variant="body2">
-                              <strong>{key.replace('_', ' ')}:</strong> {result[key]}
-                            </Typography>
-                          ))}
-                        </Box>
-                      ))
-                    ) : (
-                      <Typography variant="body2" sx={{ color: '#888' }}>
-                        No results found for this category.
+                {Object.keys(searchResults).map((resultKey) => {
+                  // Remove '_RESULTS' suffix and format heading
+                  const heading = resultKey.replace('_RESULTS', '').replace('_', ' ').toUpperCase();
+                  return (
+                    <Box key={resultKey} sx={{ marginBottom: 2 }}>
+                      <Typography
+                        variant="subtitle1"
+                        sx={{ fontWeight: 'bold', marginTop: 1 }}
+                        ref={(el) => {
+                          categoryRefs.current[resultKey] = el;
+                        }}
+                      >
+                        {heading}:
                       </Typography>
-                    )}
-                  </Box>
-                ))}
+                      {searchResults[resultKey].length > 0 ? (
+                        searchResults[resultKey].map((result, idx) => (
+                          <Box
+                            key={idx}
+                            sx={{ marginBottom: 1, padding: 1, borderBottom: '1px solid #ddd' }}
+                          >
+                            {Object.keys(result)
+                              .filter((key) => key !== 'id') // Exclude 'id' parameter
+                              .map((key) => (
+                                <Typography key={key} variant="body2">
+                                  <strong>{key.replace('_', ' ')}:</strong> {result[key]}
+                                </Typography>
+                              ))}
+                          </Box>
+                        ))
+                      ) : (
+                        <Typography variant="body2" sx={{ color: '#888' }}>
+                          No results found for this category.
+                        </Typography>
+                      )}
+                    </Box>
+                  );
+                })}
               </Box>
             </>
           )}
@@ -179,4 +189,6 @@ const SearchPedigreeDatabase = () => {
 };
 
 export default SearchPedigreeDatabase;
+
+
 
