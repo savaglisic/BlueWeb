@@ -58,8 +58,8 @@ const SearchPedigreeDatabase = () => {
             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
           }}
         >
-          <Typography variant="h4">Search Pedigree Database</Typography>
-          <Typography variant="body1" sx={{ marginTop: 2, marginBottom: 3 }}>
+          <Typography variant="body" sx={{fontWeight: 'bold'}}>Search Pedigree Database</Typography>
+          <Typography variant="body2" sx={{ marginTop: 2, marginBottom: 3 }}>
             Enter a genotype to search the database:
           </Typography>
 
@@ -189,6 +189,4 @@ const SearchPedigreeDatabase = () => {
 };
 
 export default SearchPedigreeDatabase;
-
-
 
