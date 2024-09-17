@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Box, Typography, CssVarsProvider, Input, Button, CircularProgress } from '@mui/joy';
 import axios from 'axios';
 
@@ -7,6 +7,9 @@ const SearchPedigreeDatabase = () => {
   const [searchResults, setSearchResults] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  const resultsContainerRef = useRef(null);
+  const categoryRefs = useRef({});
 
   const handleSearch = async () => {
     if (!searchTerm.trim()) {
@@ -92,55 +95,82 @@ const SearchPedigreeDatabase = () => {
           )}
 
           {searchResults && (
-            <Box
-              sx={{
-                marginTop: 3,
-                width: '100%',
-                maxHeight: '300px',
-                overflowY: 'auto',
-                padding: 2,
-                border: '1px solid #ccc',
-                borderRadius: 'md',
-                backgroundColor: '#f9f9f9',
-                '&::-webkit-scrollbar': {
-                  width: '8px',
-                },
-                '&::-webkit-scrollbar-thumb': {
-                  backgroundColor: '#888', // Thumb color
-                  borderRadius: '10px', // Roundness of the scrollbar thumb
-                },
-                '&::-webkit-scrollbar-thumb:hover': {
-                  backgroundColor: '#555', // Darker color on hover
-                },
-                '&::-webkit-scrollbar-track': {
-                  backgroundColor: '#f1f1f1', // Background track color
-                },
-              }}
-            >
+            <>
+              {/* Horizontal Row of Buttons */}
+              <Box sx={{ display: 'flex', overflowX: 'auto', marginTop: 2 }}>
+                {Object.keys(searchResults).map((resultKey) => (
+                  <Button
+                    key={resultKey}
+                    onClick={() => {
+                      categoryRefs.current[resultKey]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }}
+                    sx={{ marginRight: 1 }}
+                  >
+                    {resultKey.replace('_', ' ').toUpperCase()}
+                  </Button>
+                ))}
+              </Box>
 
-              {Object.keys(searchResults).map((resultKey) => (
-                <Box key={resultKey} sx={{ marginBottom: 2 }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 'bold', marginTop: 1 }}>
-                    {resultKey.replace('_', ' ').toUpperCase()}:
-                  </Typography>
-                  {searchResults[resultKey].length > 0 ? (
-                    searchResults[resultKey].map((result, idx) => (
-                      <Box key={idx} sx={{ marginBottom: 1, padding: 1, borderBottom: '1px solid #ddd' }}>
-                        {Object.keys(result).map((key) => (
-                          <Typography key={key} variant="body2">
-                            <strong>{key.replace('_', ' ')}:</strong> {result[key]}
-                          </Typography>
-                        ))}
-                      </Box>
-                    ))
-                  ) : (
-                    <Typography variant="body2" sx={{ color: '#888' }}>
-                      No results found for this category.
+              {/* Search Results Box */}
+              <Box
+                ref={resultsContainerRef}
+                sx={{
+                  marginTop: 3,
+                  width: '100%',
+                  maxHeight: '300px',
+                  overflowY: 'auto',
+                  padding: 2,
+                  border: '1px solid #ccc',
+                  borderRadius: 'md',
+                  backgroundColor: '#f9f9f9',
+                  '&::-webkit-scrollbar': {
+                    width: '8px',
+                  },
+                  '&::-webkit-scrollbar-thumb': {
+                    backgroundColor: '#888',
+                    borderRadius: '10px',
+                  },
+                  '&::-webkit-scrollbar-thumb:hover': {
+                    backgroundColor: '#555',
+                  },
+                  '&::-webkit-scrollbar-track': {
+                    backgroundColor: '#f1f1f1',
+                  },
+                }}
+              >
+                {Object.keys(searchResults).map((resultKey) => (
+                  <Box key={resultKey} sx={{ marginBottom: 2 }}>
+                    <Typography
+                      variant="subtitle1"
+                      sx={{ fontWeight: 'bold', marginTop: 1 }}
+                      ref={(el) => {
+                        categoryRefs.current[resultKey] = el;
+                      }}
+                    >
+                      {resultKey.replace('_', ' ').toUpperCase()} RESULTS:
                     </Typography>
-                  )}
-                </Box>
-              ))}
-            </Box>
+                    {searchResults[resultKey].length > 0 ? (
+                      searchResults[resultKey].map((result, idx) => (
+                        <Box
+                          key={idx}
+                          sx={{ marginBottom: 1, padding: 1, borderBottom: '1px solid #ddd' }}
+                        >
+                          {Object.keys(result).map((key) => (
+                            <Typography key={key} variant="body2">
+                              <strong>{key.replace('_', ' ')}:</strong> {result[key]}
+                            </Typography>
+                          ))}
+                        </Box>
+                      ))
+                    ) : (
+                      <Typography variant="body2" sx={{ color: '#888' }}>
+                        No results found for this category.
+                      </Typography>
+                    )}
+                  </Box>
+                ))}
+              </Box>
+            </>
           )}
         </Box>
       </Box>
