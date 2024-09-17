@@ -102,6 +102,19 @@ const SearchPedigreeDatabase = () => {
                 border: '1px solid #ccc',
                 borderRadius: 'md',
                 backgroundColor: '#f9f9f9',
+                '&::-webkit-scrollbar': {
+                  width: '8px',
+                },
+                '&::-webkit-scrollbar-thumb': {
+                  backgroundColor: '#888', // Thumb color
+                  borderRadius: '10px', // Roundness of the scrollbar thumb
+                },
+                '&::-webkit-scrollbar-thumb:hover': {
+                  backgroundColor: '#555', // Darker color on hover
+                },
+                '&::-webkit-scrollbar-track': {
+                  backgroundColor: '#f1f1f1', // Background track color
+                },
               }}
             >
 
