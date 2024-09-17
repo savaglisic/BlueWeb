@@ -15,9 +15,10 @@ const App = () => {
     <>
       {view === 'login' && <LoginPage onLoginSuccess={handleLoginSuccess} />}
       {view === 'mainMenu' && <MainMenu setView={setView} />}
-      {view === 'searchPedigree' && <SearchPedigreeDatabase />}
+      {view === 'searchPedigree' && <SearchPedigreeDatabase setView={setView} />}
     </>
   );
 };
 
 export default App;
+

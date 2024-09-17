@@ -1,8 +1,9 @@
-import React, { useState, useRef } from 'react'; 
-import { Box, Typography, CssVarsProvider, Input, Button, CircularProgress } from '@mui/joy';
+import React, { useState, useRef } from 'react';
+import { Box, Typography, CssVarsProvider, Input, Button, CircularProgress, IconButton } from '@mui/joy';
+import HomeIcon from '@mui/icons-material/Home';
 import axios from 'axios';
 
-const SearchPedigreeDatabase = () => {
+const SearchPedigreeDatabase = ({ setView }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -46,6 +47,7 @@ const SearchPedigreeDatabase = () => {
       >
         <Box
           sx={{
+            position: 'relative',  // Make sure the home icon can be placed absolutely
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
@@ -58,6 +60,18 @@ const SearchPedigreeDatabase = () => {
             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
           }}
         >
+          {/* Home Icon */}
+          <IconButton
+            sx={{
+              position: 'absolute',
+              top: 10,
+              left: 10,
+            }}
+            onClick={() => setView('mainMenu')}
+          >
+            <HomeIcon />
+          </IconButton>
+
           <Typography variant="body" sx={{fontWeight: 'bold'}}>Search Pedigree Database</Typography>
           <Typography variant="body2" sx={{ marginTop: 2, marginBottom: 3 }}>
             Enter a genotype to search the database:
@@ -189,4 +203,5 @@ const SearchPedigreeDatabase = () => {
 };
 
 export default SearchPedigreeDatabase;
+
 
