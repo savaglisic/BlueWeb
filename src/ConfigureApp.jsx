@@ -72,7 +72,7 @@ const ConfigureApp = ({ setView }) => {
           alert(data.message);
         }
       });
-  };
+  };  
 
   const handleAddOption = (optionType) => {
     const optionText = newOptionTexts[optionType];
@@ -114,7 +114,7 @@ const ConfigureApp = ({ setView }) => {
           alert(data.message);
         }
       });
-  };
+  };  
 
   return (
     <CssVarsProvider>
