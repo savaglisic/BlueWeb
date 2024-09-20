@@ -136,6 +136,7 @@ const MainMenu = ({ setView }) => {
                 justifyContent: 'center',
               }}
               variant="solid"
+              onClick={() => setView('configureApp')}
             >
               <SettingsIcon fontSize="large" />
               <Typography sx={{ color: 'white', marginTop: '8px' }}>Configure BlueWeb</Typography>
