@@ -71,6 +71,7 @@ const MainMenu = ({ setView }) => {
                 justifyContent: 'center',
               }}
               variant="solid"
+              onClick={() => setView('addSamples')}
             >
               <AddCircleOutlineIcon fontSize="large" />
               <Typography sx={{ color: 'white', marginTop: '8px' }}>Add Samples</Typography>
@@ -137,7 +138,7 @@ const MainMenu = ({ setView }) => {
               variant="solid"
             >
               <SettingsIcon fontSize="large" />
-              <Typography sx={{ color: 'white', marginTop: '8px' }}>Configure Sensory Panels</Typography>
+              <Typography sx={{ color: 'white', marginTop: '8px' }}>Configure BlueWeb</Typography>
             </IconButton>
           </Box>
 
