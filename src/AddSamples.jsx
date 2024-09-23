@@ -49,7 +49,7 @@ const AddSamples = ({ setView }) => {
   };
 
   const [formData, setFormData] = useState(initialFormData);
-
+  const [genotypeSuggestion, setGenotypeSuggestion] = useState('');
   const [options, setOptions] = useState({
     stage: [],
     site: [],
@@ -57,9 +57,10 @@ const AddSamples = ({ setView }) => {
     project: [],
     post_harvest: [],
   });
-
+  
   const barcodeRef = useRef(null);
   const genotypeRef = useRef(null);
+  const typingTimer = useRef(null); // For debouncing
 
   useEffect(() => {
     // Focus the barcode input field on component mount
@@ -69,7 +70,7 @@ const AddSamples = ({ setView }) => {
   }, []);
 
   useEffect(() => {
-    // Fetch options for the select fields
+    // Fetch options for select fields
     fetch('http://localhost:5000/option_config')
       .then((response) => response.json())
       .then((data) => {
@@ -121,33 +122,65 @@ const AddSamples = ({ setView }) => {
       .then((response) => response.json())
       .then((data) => {
         if (data.status === 'success') {
-          // Fill in the form with data from the backend
           setFormData((prevData) => ({
             ...prevData,
             ...data.data,
           }));
-        } else if (data.status === 'not_found') {
-          // Barcode not found; proceed normally
-        } else {
-          alert('Error: ' + data.message);
         }
       })
-      .catch((error) => {
-        console.error('Error checking barcode:', error);
-      });
+      .catch((error) => console.error('Error checking barcode:', error));
   };
 
   const handleBarcodeChange = (event) => {
     const value = event.target.value;
-    // Ensure that the barcode is numerical and does not exceed 7 digits
     if (/^\d{0,7}$/.test(value)) {
       handleChange(event);
     }
   };
 
+  const handleGenotypeChange = (event) => {
+    handleChange(event);
+    const value = event.target.value;
+
+    if (value.length > 2) {
+      // Clear the debounce timer
+      clearTimeout(typingTimer.current);
+      
+      // Set a new timer to wait before calling spell check
+      typingTimer.current = setTimeout(() => {
+        spellCheckGenotype(value);
+      }, 500); 
+    }
+  };
+
+  const spellCheckGenotype = (inputGenotype) => {
+    fetch('http://localhost:5000/spell_check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ input_string: inputGenotype }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.message === 'Exact match found') {
+          if (isNaN(inputGenotype) && inputGenotype[0] !== inputGenotype[0].toUpperCase()) {
+            const correctedGenotype = inputGenotype.charAt(0).toUpperCase() + inputGenotype.slice(1);
+            setGenotypeSuggestion(`to capitalize genotype ${correctedGenotype}`);
+          } else {
+            setGenotypeSuggestion(''); 
+          }
+        } else if (data.message === 'Partial match found') {
+          setGenotypeSuggestion(`Did you mean: ${data.genotype}`);
+        } else {
+          setGenotypeSuggestion('No match found');
+        }
+      })
+      .catch((error) => {
+        console.error('Error checking genotype:', error);
+      });
+  };  
+
   const handleSubmit = (e) => {
     e.preventDefault();
-
     const cleanedData = { ...formData };
     Object.keys(cleanedData).forEach((key) => {
       if (cleanedData[key] === '') {
@@ -164,9 +197,7 @@ const AddSamples = ({ setView }) => {
       .then((data) => {
         if (data.status === 'success') {
           alert('Plant data added successfully!');
-          // Reset the form
           setFormData(initialFormData);
-          // Focus the barcode field again
           if (barcodeRef.current) {
             barcodeRef.current.focus();
           }
@@ -178,7 +209,6 @@ const AddSamples = ({ setView }) => {
 
   const handleReset = () => {
     setFormData(initialFormData);
-    // Focus the barcode field again
     if (barcodeRef.current) {
       barcodeRef.current.focus();
     }
@@ -186,30 +216,7 @@ const AddSamples = ({ setView }) => {
 
   return (
     <CssVarsProvider>
-      <GlobalStyles
-        styles={{
-          '.scrollable-box': {
-            overflowY: 'auto',
-            maxHeight: '90vh',
-          },
-          '.scrollable-box::-webkit-scrollbar': {
-            width: '8px',
-          },
-          '.scrollable-box::-webkit-scrollbar-track': {
-            background: '#f1f1f1',
-          },
-          '.scrollable-box::-webkit-scrollbar-thumb': {
-            backgroundColor: '#888',
-            borderRadius: '10px',
-          },
-          '.scrollable-box::-webkit-scrollbar-thumb:hover': {
-            background: '#555',
-          },
-          body: {
-            overflow: 'hidden', // Prevent body from scrolling
-          },
-        }}
-      />
+      <GlobalStyles />
       <Box
         sx={{
           display: 'flex',
@@ -236,27 +243,11 @@ const AddSamples = ({ setView }) => {
             overflowY: 'auto',
             maxHeight: '90vh',
           }}
-          className="scrollable-box"
         >
-          <IconButton
-            sx={{
-              position: 'absolute',
-              top: 10,
-              left: 10,
-            }}
-            onClick={() => setView('mainMenu')}
-          >
+          <IconButton sx={{ position: 'absolute', top: 10, left: 10 }} onClick={() => setView('mainMenu')}>
             <HomeIcon />
           </IconButton>
-
-          <IconButton
-            sx={{
-              position: 'absolute',
-              top: 10,
-              right: 10,
-            }}
-            onClick={handleReset}
-          >
+          <IconButton sx={{ position: 'absolute', top: 10, right: 10 }} onClick={handleReset}>
             <RestartAltIcon />
           </IconButton>
 
@@ -278,20 +269,29 @@ const AddSamples = ({ setView }) => {
                     inputMode: 'numeric',
                     pattern: '[0-9]*',
                   }}
-                  inputRef={barcodeRef} // Use inputRef to get the underlying input element
-                  autoFocus // Automatically focus this input on mount
+                  inputRef={barcodeRef}
+                  autoFocus
                 />
               </FormControl>
+
               <FormControl>
                 <FormLabel>Genotype</FormLabel>
                 <Input
                   name="genotype"
                   value={formData.genotype}
-                  onChange={handleChange}
+                  onChange={handleGenotypeChange}
                   required
-                  inputRef={genotypeRef} // Use inputRef for genotype
+                  inputRef={genotypeRef}
                 />
+                {genotypeSuggestion && (
+                  <Typography sx={{ color: 'red', fontStyle: 'italic' }}>
+                    {genotypeSuggestion === 'No match found'
+                      ? 'No exact match found'
+                      : `Did you mean: ${genotypeSuggestion}?`}
+                  </Typography>
+                )}
               </FormControl>
+
               <FormControl>
                 <FormLabel>Stage</FormLabel>
                 <Select
@@ -442,3 +442,4 @@ const AddSamples = ({ setView }) => {
 };
 
 export default AddSamples;
+
