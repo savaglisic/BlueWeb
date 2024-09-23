@@ -310,6 +310,14 @@ const AddSamples = ({ setView }) => {
                 />
               </FormControl>
               <FormControl>
+                <FormLabel>X Berry Mass</FormLabel>
+                <Input
+                  name="x_berry_mass"
+                  value={formData.x_berry_mass}
+                  onChange={handleChange}
+                />
+              </FormControl>
+              <FormControl>
                 <FormLabel>Notes</FormLabel>
                 <Textarea
                   name="notes"
