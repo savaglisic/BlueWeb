@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import {
   Box,
   Typography,
@@ -11,8 +12,13 @@ import {
   Option,
   FormControl,
   FormLabel,
+  GlobalStyles,
 } from '@mui/joy';
 import HomeIcon from '@mui/icons-material/Home';
+
+const PortalListbox = React.forwardRef(function PortalListbox(props, ref) {
+  return ReactDOM.createPortal(<ul {...props} ref={ref} />, document.body);
+});
 
 const AddSamples = ({ setView }) => {
   const [formData, setFormData] = useState({
@@ -107,6 +113,28 @@ const AddSamples = ({ setView }) => {
 
   return (
     <CssVarsProvider>
+      <GlobalStyles styles={`
+        .scrollable-box {
+          overflow-y: auto;
+          max-height: 90vh;
+        }
+        .scrollable-box::-webkit-scrollbar {
+          width: 8px;
+        }
+        .scrollable-box::-webkit-scrollbar-track {
+          background: #f1f1f1;
+        }
+        .scrollable-box::-webkit-scrollbar-thumb {
+          background-color: #888;
+          border-radius: 10px;
+        }
+        .scrollable-box::-webkit-scrollbar-thumb:hover {
+          background: #555;
+        }
+        body {
+          overflow: hidden; /* Prevent body from scrolling */
+        }
+      `} />
       <Box
         sx={{
           display: 'flex',
@@ -115,7 +143,6 @@ const AddSamples = ({ setView }) => {
           justifyContent: 'center',
           alignItems: 'center',
           backgroundColor: '#87CEEB',
-          overflow: 'hidden',
         }}
       >
         <Box
@@ -178,6 +205,11 @@ const AddSamples = ({ setView }) => {
                   value={formData.stage}
                   onChange={(_, newValue) => handleChange('stage', newValue)}
                   required
+                  slotProps={{
+                    listbox: {
+                      component: PortalListbox,
+                    },
+                  }}
                 >
                   {options.stage.map((stage, idx) => (
                     <Option key={idx} value={stage}>{stage}</Option>
@@ -191,6 +223,11 @@ const AddSamples = ({ setView }) => {
                   value={formData.site}
                   onChange={(_, newValue) => handleChange('site', newValue)}
                   required
+                  slotProps={{
+                    listbox: {
+                      component: PortalListbox,
+                    },
+                  }}
                 >
                   {options.site.map((site, idx) => (
                     <Option key={idx} value={site}>{site}</Option>
@@ -203,6 +240,11 @@ const AddSamples = ({ setView }) => {
                   name="block"
                   value={formData.block}
                   onChange={(_, newValue) => handleChange('block', newValue)}
+                  slotProps={{
+                    listbox: {
+                      component: PortalListbox,
+                    },
+                  }}
                 >
                   {options.block.map((block, idx) => (
                     <Option key={idx} value={block}>{block}</Option>
@@ -215,6 +257,11 @@ const AddSamples = ({ setView }) => {
                   name="project"
                   value={formData.project}
                   onChange={(_, newValue) => handleChange('project', newValue)}
+                  slotProps={{
+                    listbox: {
+                      component: PortalListbox,
+                    },
+                  }}
                 >
                   {options.project.map((project, idx) => (
                     <Option key={idx} value={project}>{project}</Option>
@@ -227,6 +274,11 @@ const AddSamples = ({ setView }) => {
                   name="post_harvest"
                   value={formData.post_harvest}
                   onChange={(_, newValue) => handleChange('post_harvest', newValue)}
+                  slotProps={{
+                    listbox: {
+                      component: PortalListbox,
+                    },
+                  }}
                 >
                   {options.post_harvest.map((ph, idx) => (
                     <Option key={idx} value={ph}>{ph}</Option>
@@ -273,25 +325,6 @@ const AddSamples = ({ setView }) => {
           </form>
         </Box>
       </Box>
-      <style>{`
-        .scrollable-box {
-          overflow-y: auto;
-          max-height: 90vh;
-        }
-        .scrollable-box::-webkit-scrollbar {
-          width: 8px;
-        }
-        .scrollable-box::-webkit-scrollbar-track {
-          background: #f1f1f1;
-        }
-        .scrollable-box::-webkit-scrollbar-thumb {
-          background-color: #888;
-          border-radius: 10px;
-        }
-        .scrollable-box::-webkit-scrollbar-thumb:hover {
-          background: #555;
-        }
-      `}</style>
     </CssVarsProvider>
   );
 };
