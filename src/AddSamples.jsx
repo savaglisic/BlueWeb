@@ -99,6 +99,7 @@ const AddSamples = ({ setView }) => {
             overflowY: 'auto',
             maxHeight: '90vh',
           }}
+          className="scrollable-box"
         >
           {/* Home Icon */}
           <IconButton
@@ -198,6 +199,22 @@ const AddSamples = ({ setView }) => {
           </form>
         </Box>
       </Box>
+          {/* Custom Scrollbar CSS */}
+          <style>{`
+        .scrollable-box::-webkit-scrollbar {
+          width: 8px;
+        }
+        .scrollable-box::-webkit-scrollbar-track {
+          background: #f1f1f1;
+        }
+        .scrollable-box::-webkit-scrollbar-thumb {
+          background-color: #888;
+          border-radius: 10px;
+        }
+        .scrollable-box::-webkit-scrollbar-thumb:hover {
+          background: #555;
+        }
+      `}</style>
     </CssVarsProvider>
   );
 };

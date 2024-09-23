@@ -126,7 +126,6 @@ const ConfigureApp = ({ setView }) => {
           justifyContent: 'center',
           alignItems: 'center',
           backgroundColor: '#87CEEB',
-          overflowY: 'auto',
           padding: 2,
         }}
       >
@@ -141,9 +140,12 @@ const ConfigureApp = ({ setView }) => {
             backgroundColor: '#ffffff',
             width: '100%',
             maxWidth: '800px',
+            height: '80vh', // Set a max height for the scrollable area
+            overflowY: 'auto', // Make it scrollable
             boxSizing: 'border-box',
             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
           }}
+          className="scrollable-box" // Add a class for styling the scrollbar
         >
           {/* Home Icon */}
           <IconButton
@@ -153,13 +155,13 @@ const ConfigureApp = ({ setView }) => {
             <HomeIcon />
           </IconButton>
 
-          <Typography variant="h5" sx={{fontWeight: 'bold', color: 'black'}}>
+          <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'black' }}>
             Configure BlueWeb
           </Typography>
 
           {/* Email Whitelist */}
           <Box sx={{ width: '100%', mt: 2 }}>
-            <Typography level="h6" sx={{fontWeight: 'bold', color: 'black'}}>Email Whitelist</Typography>
+            <Typography level="h6" sx={{ fontWeight: 'bold', color: 'black' }}>Email Whitelist</Typography>
             <List>
               {emailWhitelist.map((email, index) => (
                 <ListItem
@@ -194,7 +196,7 @@ const ConfigureApp = ({ setView }) => {
           {/* Option Configs */}
           {Object.keys(optionConfigs).map((optionType) => (
             <Box key={optionType} sx={{ width: '100%', mt: 4 }}>
-              <Typography level="h6" sx={{fontWeight: 'bold', color: 'black'}}>{optionType}</Typography>
+              <Typography level="h6" sx={{ fontWeight: 'bold', color: 'black' }}>{optionType}</Typography>
               <List>
                 {optionConfigs[optionType].map((option) => (
                   <ListItem
@@ -238,9 +240,25 @@ const ConfigureApp = ({ setView }) => {
           ))}
         </Box>
       </Box>
+
+      {/* Custom Scrollbar CSS */}
+      <style>{`
+        .scrollable-box::-webkit-scrollbar {
+          width: 8px;
+        }
+        .scrollable-box::-webkit-scrollbar-track {
+          background: #f1f1f1;
+        }
+        .scrollable-box::-webkit-scrollbar-thumb {
+          background-color: #888;
+          border-radius: 10px;
+        }
+        .scrollable-box::-webkit-scrollbar-thumb:hover {
+          background: #555;
+        }
+      `}</style>
     </CssVarsProvider>
   );
 };
 
 export default ConfigureApp;
-
