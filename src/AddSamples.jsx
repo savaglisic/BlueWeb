@@ -131,18 +131,21 @@ const AddSamples = ({ setView }) => {
                 name="genotype"
                 value={formData.genotype}
                 onChange={handleChange}
+                required
               />
               <Input
                 placeholder="Stage"
                 name="stage"
                 value={formData.stage}
                 onChange={handleChange}
+                required
               />
               <Input
                 placeholder="Site"
                 name="site"
                 value={formData.site}
                 onChange={handleChange}
+                required
               />
               <Input
                 placeholder="Block"
@@ -168,12 +171,6 @@ const AddSamples = ({ setView }) => {
                 value={formData.bush_plant_number}
                 onChange={handleChange}
               />
-              <Textarea
-                placeholder="Notes"
-                name="notes"
-                value={formData.notes}
-                onChange={handleChange}
-              />
               <Input
                 placeholder="Mass"
                 name="mass"
@@ -190,6 +187,12 @@ const AddSamples = ({ setView }) => {
                 placeholder="X Berry Mass"
                 name="x_berry_mass"
                 value={formData.number_of_berries}
+                onChange={handleChange}
+              />
+              <Textarea
+                placeholder="Notes"
+                name="notes"
+                value={formData.notes}
                 onChange={handleChange}
               />
             </Box>
