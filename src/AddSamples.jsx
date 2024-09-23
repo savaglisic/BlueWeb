@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -7,6 +7,10 @@ import {
   Button,
   CssVarsProvider,
   Textarea,
+  Select,
+  Option,
+  FormControl,
+  FormLabel,
 } from '@mui/joy';
 import HomeIcon from '@mui/icons-material/Home';
 
@@ -36,18 +40,49 @@ const AddSamples = ({ setView }) => {
     bush: ''
   });
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
+  const [options, setOptions] = useState({
+    stage: [],
+    site: [],
+    block: [],
+    project: [],
+    post_harvest: [],
+  });
+
+  useEffect(() => {
+    fetch('http://localhost:5000/option_config')
+      .then(response => response.json())
+      .then(data => {
+        const groupedOptions = data.options.reduce((acc, option) => {
+          if (!acc[option.option_type]) {
+            acc[option.option_type] = [];
+          }
+          acc[option.option_type].push(option.option_text);
+          return acc;
+        }, {});
+
+        setOptions({
+          stage: groupedOptions.stage || [],
+          site: groupedOptions.site || [],
+          block: groupedOptions.block || [],
+          project: groupedOptions.project || [],
+          post_harvest: groupedOptions.post_harvest || []
+        });
+      })
+      .catch(error => console.error('Error fetching options:', error));
+  }, []);
+
+  const handleChange = (event, newValue) => {
+    const name = event.target ? event.target.name : event;
+    const value = newValue !== undefined ? newValue : event.target.value;
+    setFormData(prevData => ({
+      ...prevData,
       [name]: value,
-    });
+    }));
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    // Clean formData to handle empty strings and convert them to null
     const cleanedData = { ...formData };
     Object.keys(cleanedData).forEach(key => {
       if (cleanedData[key] === '') {
@@ -55,7 +90,6 @@ const AddSamples = ({ setView }) => {
       }
     });
     
-    // Post form data to Flask backend
     fetch('http://localhost:5000/add_plant_data', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -69,7 +103,7 @@ const AddSamples = ({ setView }) => {
         alert('Error: ' + data.message);
       }
     });
-  };  
+  };
 
   return (
     <CssVarsProvider>
@@ -81,6 +115,7 @@ const AddSamples = ({ setView }) => {
           justifyContent: 'center',
           alignItems: 'center',
           backgroundColor: '#87CEEB',
+          overflow: 'hidden',
         }}
       >
         <Box
@@ -101,7 +136,6 @@ const AddSamples = ({ setView }) => {
           }}
           className="scrollable-box"
         >
-          {/* Home Icon */}
           <IconButton
             sx={{
               position: 'absolute',
@@ -113,97 +147,137 @@ const AddSamples = ({ setView }) => {
             <HomeIcon />
           </IconButton>
 
-          <Typography variant="h5" sx={{ fontWeight: 'bold', marginBottom: 2 }}>
+          <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'black' }}>
             Define New Samples
           </Typography>
 
           <form onSubmit={handleSubmit} style={{ width: '100%' }}>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              <Input
-                placeholder="Barcode"
-                name="barcode"
-                value={formData.barcode}
-                onChange={handleChange}
-                required
-              />
-              <Input
-                placeholder="Genotype"
-                name="genotype"
-                value={formData.genotype}
-                onChange={handleChange}
-                required
-              />
-              <Input
-                placeholder="Stage"
-                name="stage"
-                value={formData.stage}
-                onChange={handleChange}
-                required
-              />
-              <Input
-                placeholder="Site"
-                name="site"
-                value={formData.site}
-                onChange={handleChange}
-                required
-              />
-              <Input
-                placeholder="Block"
-                name="block"
-                value={formData.block}
-                onChange={handleChange}
-              />
-              <Input
-                placeholder="Project"
-                name="project"
-                value={formData.project}
-                onChange={handleChange}
-              />
-              <Input
-                placeholder="Post Harvest"
-                name="post_harvest"
-                value={formData.post_harvest}
-                onChange={handleChange}
-              />
-              <Input
-                placeholder="Bush Plant Number"
-                name="bush_plant_number"
-                value={formData.bush_plant_number}
-                onChange={handleChange}
-              />
-              <Input
-                placeholder="Mass"
-                name="mass"
-                value={formData.mass}
-                onChange={handleChange}
-              />
-              <Input
-                placeholder="Number of Berries"
-                name="number_of_berries"
-                value={formData.number_of_berries}
-                onChange={handleChange}
-              />
-              <Input
-                placeholder="X Berry Mass"
-                name="x_berry_mass"
-                value={formData.number_of_berries}
-                onChange={handleChange}
-              />
-              <Textarea
-                placeholder="Notes"
-                name="notes"
-                value={formData.notes}
-                onChange={handleChange}
-              />
+              <FormControl>
+                <FormLabel>Barcode</FormLabel>
+                <Input
+                  name="barcode"
+                  value={formData.barcode}
+                  onChange={handleChange}
+                  required
+                />
+              </FormControl>
+              <FormControl>
+                <FormLabel>Genotype</FormLabel>
+                <Input
+                  name="genotype"
+                  value={formData.genotype}
+                  onChange={handleChange}
+                  required
+                />
+              </FormControl>
+              <FormControl>
+                <FormLabel>Stage</FormLabel>
+                <Select
+                  name="stage"
+                  value={formData.stage}
+                  onChange={(_, newValue) => handleChange('stage', newValue)}
+                  required
+                >
+                  {options.stage.map((stage, idx) => (
+                    <Option key={idx} value={stage}>{stage}</Option>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl>
+                <FormLabel>Site</FormLabel>
+                <Select
+                  name="site"
+                  value={formData.site}
+                  onChange={(_, newValue) => handleChange('site', newValue)}
+                  required
+                >
+                  {options.site.map((site, idx) => (
+                    <Option key={idx} value={site}>{site}</Option>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl>
+                <FormLabel>Block</FormLabel>
+                <Select
+                  name="block"
+                  value={formData.block}
+                  onChange={(_, newValue) => handleChange('block', newValue)}
+                >
+                  {options.block.map((block, idx) => (
+                    <Option key={idx} value={block}>{block}</Option>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl>
+                <FormLabel>Project</FormLabel>
+                <Select
+                  name="project"
+                  value={formData.project}
+                  onChange={(_, newValue) => handleChange('project', newValue)}
+                >
+                  {options.project.map((project, idx) => (
+                    <Option key={idx} value={project}>{project}</Option>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl>
+                <FormLabel>Post Harvest</FormLabel>
+                <Select
+                  name="post_harvest"
+                  value={formData.post_harvest}
+                  onChange={(_, newValue) => handleChange('post_harvest', newValue)}
+                >
+                  {options.post_harvest.map((ph, idx) => (
+                    <Option key={idx} value={ph}>{ph}</Option>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl>
+                <FormLabel>Bush Plant Number</FormLabel>
+                <Input
+                  name="bush_plant_number"
+                  value={formData.bush_plant_number}
+                  onChange={handleChange}
+                />
+              </FormControl>
+              <FormControl>
+                <FormLabel>Mass</FormLabel>
+                <Input
+                  name="mass"
+                  value={formData.mass}
+                  onChange={handleChange}
+                />
+              </FormControl>
+              <FormControl>
+                <FormLabel>Number of Berries</FormLabel>
+                <Input
+                  name="number_of_berries"
+                  value={formData.number_of_berries}
+                  onChange={handleChange}
+                />
+              </FormControl>
+              <FormControl>
+                <FormLabel>Notes</FormLabel>
+                <Textarea
+                  name="notes"
+                  value={formData.notes}
+                  onChange={handleChange}
+                  minRows={3}
+                />
+              </FormControl>
             </Box>
-            <Button type="submit" variant="solid" sx={{ mt: 3 }}>
+            <Button type="submit" sx={{ mt: 3 }}>
               Submit
             </Button>
           </form>
         </Box>
       </Box>
-          {/* Custom Scrollbar CSS */}
-          <style>{`
+      <style>{`
+        .scrollable-box {
+          overflow-y: auto;
+          max-height: 90vh;
+        }
         .scrollable-box::-webkit-scrollbar {
           width: 8px;
         }
