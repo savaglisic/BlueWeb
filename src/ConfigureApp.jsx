@@ -153,13 +153,13 @@ const ConfigureApp = ({ setView }) => {
             <HomeIcon />
           </IconButton>
 
-          <Typography variant="h5" sx={{fontWeight: 'bold'}}>
+          <Typography variant="h5" sx={{fontWeight: 'bold', color: 'black'}}>
             Configure BlueWeb
           </Typography>
 
           {/* Email Whitelist */}
           <Box sx={{ width: '100%', mt: 2 }}>
-            <Typography level="h6" sx={{fontWeight: 'bold'}}>Email Whitelist</Typography>
+            <Typography level="h6" sx={{fontWeight: 'bold', color: 'black'}}>Email Whitelist</Typography>
             <List>
               {emailWhitelist.map((email, index) => (
                 <ListItem
@@ -194,7 +194,7 @@ const ConfigureApp = ({ setView }) => {
           {/* Option Configs */}
           {Object.keys(optionConfigs).map((optionType) => (
             <Box key={optionType} sx={{ width: '100%', mt: 4 }}>
-              <Typography level="h6" sx={{fontWeight: 'bold'}}>{optionType}</Typography>
+              <Typography level="h6" sx={{fontWeight: 'bold', color: 'black'}}>{optionType}</Typography>
               <List>
                 {optionConfigs[optionType].map((option) => (
                   <ListItem
