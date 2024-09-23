@@ -17,10 +17,6 @@ import {
 import HomeIcon from '@mui/icons-material/Home';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 
-const PortalListbox = React.forwardRef(function PortalListbox(props, ref) {
-  return ReactDOM.createPortal(<ul {...props} ref={ref} />, document.body);
-});
-
 const AddSamples = ({ setView }) => {
   const initialFormData = {
     barcode: '',
@@ -216,7 +212,29 @@ const AddSamples = ({ setView }) => {
 
   return (
     <CssVarsProvider>
-      <GlobalStyles />
+      <GlobalStyles styles={`
+        body {
+          overflow: hidden; /* Prevent body from scrolling */
+        }
+        .scrollable-box {
+          overflow-y: auto;
+          max-height: 90vh;
+        }
+        /* Custom scrollbar styles */
+        .scrollable-box::-webkit-scrollbar {
+          width: 8px;
+        }
+        .scrollable-box::-webkit-scrollbar-track {
+          background: #f1f1f1;
+        }
+        .scrollable-box::-webkit-scrollbar-thumb {
+          background-color: #888;
+          border-radius: 10px;
+        }
+        .scrollable-box::-webkit-scrollbar-thumb:hover {
+          background: #555;
+        }
+      `} />
       <Box
         sx={{
           display: 'flex',
@@ -225,9 +243,11 @@ const AddSamples = ({ setView }) => {
           justifyContent: 'center',
           alignItems: 'center',
           backgroundColor: '#87CEEB',
+          /* Remove overflow: 'hidden' */
         }}
       >
         <Box
+          className="scrollable-box"
           sx={{
             position: 'relative',
             display: 'flex',
@@ -284,111 +304,44 @@ const AddSamples = ({ setView }) => {
                   inputRef={genotypeRef}
                 />
                 {genotypeSuggestion && (
-                  <Typography sx={{ color: 'red', fontStyle: 'italic' }}>
+                  <Typography sx={{ color: 'red', fontStyle: 'italic' }} >
                     {genotypeSuggestion === 'No match found'
-                      ? 'No exact match found'
+                      ? 'Are you sure? Not in Database.'
                       : `Did you mean: ${genotypeSuggestion}?`}
                   </Typography>
                 )}
               </FormControl>
 
-              <FormControl>
-                <FormLabel>Stage</FormLabel>
-                <Select
-                  name="stage"
-                  value={formData.stage}
-                  onChange={(_, newValue) => handleChange('stage', newValue)}
-                  required
-                  slotProps={{
-                    listbox: {
-                      component: PortalListbox,
-                    },
-                  }}
-                >
-                  {options.stage.map((stage, idx) => (
-                    <Option key={idx} value={stage}>
-                      {stage}
-                    </Option>
-                  ))}
-                </Select>
-              </FormControl>
-              <FormControl>
-                <FormLabel>Site</FormLabel>
-                <Select
-                  name="site"
-                  value={formData.site}
-                  onChange={(_, newValue) => handleChange('site', newValue)}
-                  required
-                  slotProps={{
-                    listbox: {
-                      component: PortalListbox,
-                    },
-                  }}
-                >
-                  {options.site.map((site, idx) => (
-                    <Option key={idx} value={site}>
-                      {site}
-                    </Option>
-                  ))}
-                </Select>
-              </FormControl>
-              <FormControl>
-                <FormLabel>Block</FormLabel>
-                <Select
-                  name="block"
-                  value={formData.block}
-                  onChange={(_, newValue) => handleChange('block', newValue)}
-                  slotProps={{
-                    listbox: {
-                      component: PortalListbox,
-                    },
-                  }}
-                >
-                  {options.block.map((block, idx) => (
-                    <Option key={idx} value={block}>
-                      {block}
-                    </Option>
-                  ))}
-                </Select>
-              </FormControl>
-              <FormControl>
-                <FormLabel>Project</FormLabel>
-                <Select
-                  name="project"
-                  value={formData.project}
-                  onChange={(_, newValue) => handleChange('project', newValue)}
-                  slotProps={{
-                    listbox: {
-                      component: PortalListbox,
-                    },
-                  }}
-                >
-                  {options.project.map((project, idx) => (
-                    <Option key={idx} value={project}>
-                      {project}
-                    </Option>
-                  ))}
-                </Select>
-              </FormControl>
-              <FormControl>
-                <FormLabel>Post Harvest</FormLabel>
-                <Select
-                  name="post_harvest"
-                  value={formData.post_harvest}
-                  onChange={(_, newValue) => handleChange('post_harvest', newValue)}
-                  slotProps={{
-                    listbox: {
-                      component: PortalListbox,
-                    },
-                  }}
-                >
-                  {options.post_harvest.map((ph, idx) => (
-                    <Option key={idx} value={ph}>
-                      {ph}
-                    </Option>
-                  ))}
-                </Select>
-              </FormControl>
+              {/* Define a function to customize Select components */}
+              {['stage', 'site', 'block', 'project', 'post_harvest'].map((field) => (
+                <FormControl key={field}>
+                  <FormLabel>{field.charAt(0).toUpperCase() + field.slice(1).replace('_', ' ')}</FormLabel>
+                  <Select
+                    name={field}
+                    value={formData[field]}
+                    onChange={(_, newValue) => handleChange(field, newValue)}
+                    required={['stage', 'site'].includes(field)}
+                    slotProps={{
+                      popper: {
+                        disablePortal: false, // Render popper in a portal
+                      },
+                      listbox: {
+                        sx: {
+                          position: 'absolute',
+                          zIndex: 1300,
+                        },
+                      },
+                    }}
+                  >
+                    {options[field].map((optionValue, idx) => (
+                      <Option key={idx} value={optionValue}>
+                        {optionValue}
+                      </Option>
+                    ))}
+                  </Select>
+                </FormControl>
+              ))}
+
               <FormControl>
                 <FormLabel>Bush Plant Number</FormLabel>
                 <Input
