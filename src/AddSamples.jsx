@@ -15,13 +15,14 @@ import {
   GlobalStyles,
 } from '@mui/joy';
 import HomeIcon from '@mui/icons-material/Home';
+import RestartAltIcon from '@mui/icons-material/RestartAlt';
 
 const PortalListbox = React.forwardRef(function PortalListbox(props, ref) {
   return ReactDOM.createPortal(<ul {...props} ref={ref} />, document.body);
 });
 
 const AddSamples = ({ setView }) => {
-  const [formData, setFormData] = useState({
+  const initialFormData = {
     barcode: '',
     genotype: '',
     stage: '',
@@ -45,7 +46,9 @@ const AddSamples = ({ setView }) => {
     sd_diameter: '',
     box: '',
     bush: '',
-  });
+  };
+
+  const [formData, setFormData] = useState(initialFormData);
 
   const [options, setOptions] = useState({
     stage: [],
@@ -162,31 +165,7 @@ const AddSamples = ({ setView }) => {
         if (data.status === 'success') {
           alert('Plant data added successfully!');
           // Reset the form
-          setFormData({
-            barcode: '',
-            genotype: '',
-            stage: '',
-            site: '',
-            block: '',
-            project: '',
-            post_harvest: '',
-            bush_plant_number: '',
-            notes: '',
-            mass: '',
-            number_of_berries: '',
-            x_berry_mass: '',
-            ph: '',
-            brix: '',
-            juicemass: '',
-            tta: '',
-            mladded: '',
-            avg_firmness: '',
-            avg_diameter: '',
-            sd_firmness: '',
-            sd_diameter: '',
-            box: '',
-            bush: '',
-          });
+          setFormData(initialFormData);
           // Focus the barcode field again
           if (barcodeRef.current) {
             barcodeRef.current.focus();
@@ -195,6 +174,14 @@ const AddSamples = ({ setView }) => {
           alert('Error: ' + data.message);
         }
       });
+  };
+
+  const handleReset = () => {
+    setFormData(initialFormData);
+    // Focus the barcode field again
+    if (barcodeRef.current) {
+      barcodeRef.current.focus();
+    }
   };
 
   return (
@@ -260,6 +247,17 @@ const AddSamples = ({ setView }) => {
             onClick={() => setView('mainMenu')}
           >
             <HomeIcon />
+          </IconButton>
+
+          <IconButton
+            sx={{
+              position: 'absolute',
+              top: 10,
+              right: 10,
+            }}
+            onClick={handleReset}
+          >
+            <RestartAltIcon />
           </IconButton>
 
           <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'black' }}>
