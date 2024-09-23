@@ -113,7 +113,7 @@ const AddSamples = ({ setView }) => {
           </IconButton>
 
           <Typography variant="h5" sx={{ fontWeight: 'bold', marginBottom: 2 }}>
-            Add Samples
+            Define New Samples
           </Typography>
 
           <form onSubmit={handleSubmit} style={{ width: '100%' }}>
@@ -186,73 +186,12 @@ const AddSamples = ({ setView }) => {
                 onChange={handleChange}
               />
               <Input
-                placeholder="pH"
-                name="ph"
-                value={formData.ph}
-                onChange={handleChange}
-              />
-              <Input
-                placeholder="Brix"
-                name="brix"
-                value={formData.brix}
-                onChange={handleChange}
-              />
-              <Input
-                placeholder="Juice Mass"
-                name="juicemass"
-                value={formData.juicemass}
-                onChange={handleChange}
-              />
-              <Input
-                placeholder="TTA"
-                name="tta"
-                value={formData.tta}
-                onChange={handleChange}
-              />
-              <Input
-                placeholder="ML Added"
-                name="mladded"
-                value={formData.mladded}
-                onChange={handleChange}
-              />
-              <Input
-                placeholder="Avg Firmness"
-                name="avg_firmness"
-                value={formData.avg_firmness}
-                onChange={handleChange}
-              />
-              <Input
-                placeholder="Avg Diameter"
-                name="avg_diameter"
-                value={formData.avg_diameter}
-                onChange={handleChange}
-              />
-              <Input
-                placeholder="SD Firmness"
-                name="sd_firmness"
-                value={formData.sd_firmness}
-                onChange={handleChange}
-              />
-              <Input
-                placeholder="SD Diameter"
-                name="sd_diameter"
-                value={formData.sd_diameter}
-                onChange={handleChange}
-              />
-              <Input
-                placeholder="Box"
-                name="box"
-                value={formData.box}
-                onChange={handleChange}
-              />
-              <Input
-                placeholder="Bush"
-                name="bush"
-                value={formData.bush}
+                placeholder="X Berry Mass"
+                name="x_berry_mass"
+                value={formData.number_of_berries}
                 onChange={handleChange}
               />
             </Box>
-
             <Button type="submit" variant="solid" sx={{ mt: 3 }}>
               Submit
             </Button>
