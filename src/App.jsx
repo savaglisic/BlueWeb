@@ -4,6 +4,7 @@ import MainMenu from './MainMenu';
 import SearchPedigreeDatabase from './SearchPedigreeDatabase';
 import AddSamples from './AddSamples'; 
 import ConfigureApp from './ConfigureApp';
+import FQLab from './FQLab';
 import { GlobalStyles, CssVarsProvider } from '@mui/joy';
 
 const App = () => {
@@ -48,6 +49,7 @@ const App = () => {
       {view === 'searchPedigree' && <SearchPedigreeDatabase setView={setView} />}
       {view === 'addSamples' && <AddSamples setView={setView} />} 
       {view === 'configureApp' && <ConfigureApp setView={setView} />} 
+      {view === 'fqLab' && <FQLab setView={setView} />} 
     </>
     </CssVarsProvider>
   );

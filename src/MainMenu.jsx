@@ -94,7 +94,7 @@ const MainMenu = ({ setView }) => {
                 justifyContent: 'center',
               }}
               variant="solid"
-              onClick={() => setView('addSamples')}
+              onClick={() => setView('fqLab')}
             >
               <ScienceIcon fontSize="large" />
               <Typography sx={{ color: 'white', marginTop: '8px' }}>FQ Lab</Typography>
