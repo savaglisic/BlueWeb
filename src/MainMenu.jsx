@@ -5,6 +5,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import DatabaseIcon from '@mui/icons-material/Storage';
 import SettingsIcon from '@mui/icons-material/Settings';
 import LogoutIcon from '@mui/icons-material/Logout';
+import ScienceIcon from '@mui/icons-material/Science';
 import '@fontsource/roboto';
 
 const MainMenu = ({ setView }) => {
@@ -93,9 +94,31 @@ const MainMenu = ({ setView }) => {
                 justifyContent: 'center',
               }}
               variant="solid"
+              onClick={() => setView('addSamples')}
+            >
+              <ScienceIcon fontSize="large" />
+              <Typography sx={{ color: 'white', marginTop: '8px' }}>FQ Lab</Typography>
+            </IconButton>
+            <IconButton
+              sx={{
+                flex: 1,
+                padding: 2,
+                backgroundColor: '#1976d2',
+                color: 'white',
+                borderRadius: '12px',
+                boxShadow: 3,
+                '&:hover': {
+                  backgroundColor: '#1565c0',
+                },
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              variant="solid"
             >
               <DatabaseIcon fontSize="large" />
-              <Typography sx={{ color: 'white', marginTop: '8px' }}>Fruit Quality Database</Typography>
+              <Typography sx={{ color: 'white', marginTop: '8px' }}>FQ Database</Typography>
             </IconButton>
             <IconButton
               sx={{
