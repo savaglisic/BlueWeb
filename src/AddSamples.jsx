@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import {
   Box,
@@ -33,6 +33,7 @@ const AddSamples = ({ setView }) => {
     notes: '',
     mass: '',
     number_of_berries: '',
+    x_berry_mass: '',
     ph: '',
     brix: '',
     juicemass: '',
@@ -43,7 +44,7 @@ const AddSamples = ({ setView }) => {
     sd_firmness: '',
     sd_diameter: '',
     box: '',
-    bush: ''
+    bush: '',
   });
 
   const [options, setOptions] = useState({
@@ -54,10 +55,21 @@ const AddSamples = ({ setView }) => {
     post_harvest: [],
   });
 
+  const barcodeRef = useRef(null);
+  const genotypeRef = useRef(null);
+
   useEffect(() => {
+    // Focus the barcode input field on component mount
+    if (barcodeRef.current) {
+      barcodeRef.current.focus();
+    }
+  }, []);
+
+  useEffect(() => {
+    // Fetch options for the select fields
     fetch('http://localhost:5000/option_config')
-      .then(response => response.json())
-      .then(data => {
+      .then((response) => response.json())
+      .then((data) => {
         const groupedOptions = data.options.reduce((acc, option) => {
           if (!acc[option.option_type]) {
             acc[option.option_type] = [];
@@ -71,70 +83,146 @@ const AddSamples = ({ setView }) => {
           site: groupedOptions.site || [],
           block: groupedOptions.block || [],
           project: groupedOptions.project || [],
-          post_harvest: groupedOptions.post_harvest || []
+          post_harvest: groupedOptions.post_harvest || [],
         });
       })
-      .catch(error => console.error('Error fetching options:', error));
+      .catch((error) => console.error('Error fetching options:', error));
   }, []);
+
+  useEffect(() => {
+    // When barcode reaches 7 digits, move focus to genotype and check backend
+    if (formData.barcode.length === 7) {
+      if (genotypeRef.current) {
+        genotypeRef.current.focus();
+      }
+      checkBarcodeInBackend(formData.barcode);
+    }
+  }, [formData.barcode]);
 
   const handleChange = (event, newValue) => {
     const name = event.target ? event.target.name : event;
     const value = newValue !== undefined ? newValue : event.target.value;
-    setFormData(prevData => ({
+
+    setFormData((prevData) => ({
       ...prevData,
       [name]: value,
     }));
   };
 
+  const checkBarcodeInBackend = (barcode) => {
+    fetch('http://localhost:5000/check_barcode', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ barcode }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.status === 'success') {
+          // Fill in the form with data from the backend
+          setFormData((prevData) => ({
+            ...prevData,
+            ...data.data,
+          }));
+        } else if (data.status === 'not_found') {
+          // Barcode not found; proceed normally
+        } else {
+          alert('Error: ' + data.message);
+        }
+      })
+      .catch((error) => {
+        console.error('Error checking barcode:', error);
+      });
+  };
+
+  const handleBarcodeChange = (event) => {
+    const value = event.target.value;
+    // Ensure that the barcode is numerical and does not exceed 7 digits
+    if (/^\d{0,7}$/.test(value)) {
+      handleChange(event);
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     const cleanedData = { ...formData };
-    Object.keys(cleanedData).forEach(key => {
+    Object.keys(cleanedData).forEach((key) => {
       if (cleanedData[key] === '') {
         cleanedData[key] = null;
       }
     });
-    
+
     fetch('http://localhost:5000/add_plant_data', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(cleanedData),
     })
-    .then(response => response.json())
-    .then(data => {
-      if (data.status === 'success') {
-        alert('Plant data added successfully!');
-      } else {
-        alert('Error: ' + data.message);
-      }
-    });
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.status === 'success') {
+          alert('Plant data added successfully!');
+          // Reset the form
+          setFormData({
+            barcode: '',
+            genotype: '',
+            stage: '',
+            site: '',
+            block: '',
+            project: '',
+            post_harvest: '',
+            bush_plant_number: '',
+            notes: '',
+            mass: '',
+            number_of_berries: '',
+            x_berry_mass: '',
+            ph: '',
+            brix: '',
+            juicemass: '',
+            tta: '',
+            mladded: '',
+            avg_firmness: '',
+            avg_diameter: '',
+            sd_firmness: '',
+            sd_diameter: '',
+            box: '',
+            bush: '',
+          });
+          // Focus the barcode field again
+          if (barcodeRef.current) {
+            barcodeRef.current.focus();
+          }
+        } else {
+          alert('Error: ' + data.message);
+        }
+      });
   };
 
   return (
     <CssVarsProvider>
-      <GlobalStyles styles={`
-        .scrollable-box {
-          overflow-y: auto;
-          max-height: 90vh;
-        }
-        .scrollable-box::-webkit-scrollbar {
-          width: 8px;
-        }
-        .scrollable-box::-webkit-scrollbar-track {
-          background: #f1f1f1;
-        }
-        .scrollable-box::-webkit-scrollbar-thumb {
-          background-color: #888;
-          border-radius: 10px;
-        }
-        .scrollable-box::-webkit-scrollbar-thumb:hover {
-          background: #555;
-        }
-        body {
-          overflow: hidden; /* Prevent body from scrolling */
-        }
-      `} />
+      <GlobalStyles
+        styles={{
+          '.scrollable-box': {
+            overflowY: 'auto',
+            maxHeight: '90vh',
+          },
+          '.scrollable-box::-webkit-scrollbar': {
+            width: '8px',
+          },
+          '.scrollable-box::-webkit-scrollbar-track': {
+            background: '#f1f1f1',
+          },
+          '.scrollable-box::-webkit-scrollbar-thumb': {
+            backgroundColor: '#888',
+            borderRadius: '10px',
+          },
+          '.scrollable-box::-webkit-scrollbar-thumb:hover': {
+            background: '#555',
+          },
+          body: {
+            overflow: 'hidden', // Prevent body from scrolling
+          },
+        }}
+      />
       <Box
         sx={{
           display: 'flex',
@@ -185,8 +273,14 @@ const AddSamples = ({ setView }) => {
                 <Input
                   name="barcode"
                   value={formData.barcode}
-                  onChange={handleChange}
+                  onChange={handleBarcodeChange}
                   required
+                  inputProps={{
+                    maxLength: 7,
+                    inputMode: 'numeric',
+                    pattern: '[0-9]*',
+                  }}
+                  ref={barcodeRef}
                 />
               </FormControl>
               <FormControl>
@@ -196,6 +290,7 @@ const AddSamples = ({ setView }) => {
                   value={formData.genotype}
                   onChange={handleChange}
                   required
+                  ref={genotypeRef}
                 />
               </FormControl>
               <FormControl>
@@ -212,7 +307,9 @@ const AddSamples = ({ setView }) => {
                   }}
                 >
                   {options.stage.map((stage, idx) => (
-                    <Option key={idx} value={stage}>{stage}</Option>
+                    <Option key={idx} value={stage}>
+                      {stage}
+                    </Option>
                   ))}
                 </Select>
               </FormControl>
@@ -230,7 +327,9 @@ const AddSamples = ({ setView }) => {
                   }}
                 >
                   {options.site.map((site, idx) => (
-                    <Option key={idx} value={site}>{site}</Option>
+                    <Option key={idx} value={site}>
+                      {site}
+                    </Option>
                   ))}
                 </Select>
               </FormControl>
@@ -247,7 +346,9 @@ const AddSamples = ({ setView }) => {
                   }}
                 >
                   {options.block.map((block, idx) => (
-                    <Option key={idx} value={block}>{block}</Option>
+                    <Option key={idx} value={block}>
+                      {block}
+                    </Option>
                   ))}
                 </Select>
               </FormControl>
@@ -264,7 +365,9 @@ const AddSamples = ({ setView }) => {
                   }}
                 >
                   {options.project.map((project, idx) => (
-                    <Option key={idx} value={project}>{project}</Option>
+                    <Option key={idx} value={project}>
+                      {project}
+                    </Option>
                   ))}
                 </Select>
               </FormControl>
@@ -281,7 +384,9 @@ const AddSamples = ({ setView }) => {
                   }}
                 >
                   {options.post_harvest.map((ph, idx) => (
-                    <Option key={idx} value={ph}>{ph}</Option>
+                    <Option key={idx} value={ph}>
+                      {ph}
+                    </Option>
                   ))}
                 </Select>
               </FormControl>
