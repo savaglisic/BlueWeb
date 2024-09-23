@@ -37,7 +37,7 @@ const App = () => {
           backgroundColor: 'rgba(0, 0, 0, 0.7)',
         },
         '*': {
-          scrollbarWidth: 'thin', // For Firefox
+          scrollbarWidth: 'thin', 
           scrollbarColor: 'rgba(0, 0, 0, 0.3) transparent',
         },
       }}
