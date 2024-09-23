@@ -278,7 +278,8 @@ const AddSamples = ({ setView }) => {
                     inputMode: 'numeric',
                     pattern: '[0-9]*',
                   }}
-                  ref={barcodeRef}
+                  inputRef={barcodeRef} // Use inputRef to get the underlying input element
+                  autoFocus // Automatically focus this input on mount
                 />
               </FormControl>
               <FormControl>
@@ -288,7 +289,7 @@ const AddSamples = ({ setView }) => {
                   value={formData.genotype}
                   onChange={handleChange}
                   required
-                  ref={genotypeRef}
+                  inputRef={genotypeRef} // Use inputRef for genotype
                 />
               </FormControl>
               <FormControl>
