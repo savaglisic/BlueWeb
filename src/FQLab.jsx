@@ -145,6 +145,7 @@ const FQLab = ({ setView }) => {
                   {renderDataField('Site', plantData.site)}
                   {renderDataField('Block', plantData.block)}
                   {renderDataField('Project', plantData.project)}
+                  {renderDataField('Barcode', plantData.barcode)}
                   {renderDataField('Post Harvest', plantData.post_harvest)}
                   {renderDataField('Bush Plant Number', plantData.bush_plant_number)}
                   {renderDataField('Mass', plantData.mass)}
@@ -152,7 +153,6 @@ const FQLab = ({ setView }) => {
                   {renderDataField('X Berry Mass', plantData.x_berry_mass)}
                   {renderDataField('pH', plantData.ph)}
                   {renderDataField('Brix', plantData.brix)}
-                  {renderDataField('Juice Mass', plantData.juicemass)}
                   {renderDataField('TTA', plantData.tta)}
                   {renderDataField('ML Added', plantData.mladded)}
                   {renderDataField('Avg Firmness', plantData.avg_firmness)}
@@ -176,5 +176,3 @@ const FQLab = ({ setView }) => {
 };
 
 export default FQLab;
-
-
