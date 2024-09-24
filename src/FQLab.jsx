@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, Typography, Input, IconButton, CssVarsProvider } from '@mui/joy';
+import { Box, Typography, Input, IconButton, CssVarsProvider, Grid } from '@mui/joy';
 import HomeIcon from '@mui/icons-material/Home';
 import axios from 'axios';
 
@@ -51,20 +51,21 @@ const FQLab = ({ setView }) => {
 
   // Function to conditionally style missing or null values
   const renderDataField = (label, value) => (
-    <Typography
-      variant="body1"
-      sx={{
-        backgroundColor: !value ? '#FFCCCB' : 'transparent', // Light red for missing values
-        padding: '4px',
-        borderRadius: '4px',
-        marginBottom: '12px',
-        display: 'flex',
-        justifyContent: 'space-between',
-        width: '100%',
-      }}
-    >
-      <strong>{label}:</strong> <span>{value || 'N/A'}</span>
-    </Typography>
+    <Grid item xs={12} sm={6}>
+      <Typography
+        variant="body1"
+        sx={{
+          backgroundColor: !value ? '#FFCCCB' : 'transparent', // Light red for missing values
+          padding: '4px',
+          borderRadius: '4px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          width: '100%',
+        }}
+      >
+        <strong>{label}:</strong> <span>{value || 'N/A'}</span>
+      </Typography>
+    </Grid>
   );
 
   return (
@@ -90,7 +91,7 @@ const FQLab = ({ setView }) => {
             borderRadius: 'md',
             backgroundColor: '#ffffff',
             width: '100%',
-            maxWidth: '400px', // Widen the max width for better layout
+            maxWidth: '800px', // Widen the max width for better layout
             boxSizing: 'border-box',
             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
             overflowY: 'auto',
@@ -133,30 +134,32 @@ const FQLab = ({ setView }) => {
                     fontStyle: 'italic',
                     marginBottom: '16px',
                     textAlign: 'center',
-                    fontSize: '32px', // Larger genotype text
+                    fontSize: '42px', // Larger genotype text
                   }}
                 >
                   {plantData.genotype || 'N/A'}
                 </Typography>
-                {/* Render each data field, highlighting missing values */}
-                {renderDataField('Stage', plantData.stage)}
-                {renderDataField('Site', plantData.site)}
-                {renderDataField('Block', plantData.block)}
-                {renderDataField('Project', plantData.project)}
-                {renderDataField('Post Harvest', plantData.post_harvest)}
-                {renderDataField('Bush Plant Number', plantData.bush_plant_number)}
-                {renderDataField('Mass', plantData.mass)}
-                {renderDataField('Number of Berries', plantData.number_of_berries)}
-                {renderDataField('X Berry Mass', plantData.x_berry_mass)}
-                {renderDataField('pH', plantData.ph)}
-                {renderDataField('Brix', plantData.brix)}
-                {renderDataField('Juice Mass', plantData.juicemass)}
-                {renderDataField('TTA', plantData.tta)}
-                {renderDataField('ML Added', plantData.mladded)}
-                {renderDataField('Average Firmness', plantData.avg_firmness)}
-                {renderDataField('Average Diameter', plantData.avg_diameter)}
-                {renderDataField('SD Firmness', plantData.sd_firmness)}
-                {renderDataField('SD Diameter', plantData.sd_diameter)}
+                {/* Render data fields in a responsive grid */}
+                <Grid container spacing={2}>
+                  {renderDataField('Stage', plantData.stage)}
+                  {renderDataField('Site', plantData.site)}
+                  {renderDataField('Block', plantData.block)}
+                  {renderDataField('Project', plantData.project)}
+                  {renderDataField('Post Harvest', plantData.post_harvest)}
+                  {renderDataField('Bush Plant Number', plantData.bush_plant_number)}
+                  {renderDataField('Mass', plantData.mass)}
+                  {renderDataField('Number of Berries', plantData.number_of_berries)}
+                  {renderDataField('X Berry Mass', plantData.x_berry_mass)}
+                  {renderDataField('pH', plantData.ph)}
+                  {renderDataField('Brix', plantData.brix)}
+                  {renderDataField('Juice Mass', plantData.juicemass)}
+                  {renderDataField('TTA', plantData.tta)}
+                  {renderDataField('ML Added', plantData.mladded)}
+                  {renderDataField('Avg Firmness', plantData.avg_firmness)}
+                  {renderDataField('Avg Diameter', plantData.avg_diameter)}
+                  {renderDataField('SD Firmness', plantData.sd_firmness)}
+                  {renderDataField('SD Diameter', plantData.sd_diameter)}
+                </Grid>
               </Box>
             ) : error ? (
               <Typography variant="body2" sx={{ color: 'red' }}>
