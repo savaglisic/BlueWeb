@@ -11,41 +11,55 @@ const FQLab = ({ setView }) => {
   const [selectedProperty, setSelectedProperty] = useState('');
   const [inputValue, setInputValue] = useState('');
 
-  // Automatically focus the barcode field on page load
   useEffect(() => {
     if (barcodeInputRef.current) {
       barcodeInputRef.current.focus();
     }
   }, []);
 
-  // Handle the barcode search when 7 digits are entered
   useEffect(() => {
     if (barcode.length === 7) {
-      axios
-        .post('http://localhost:5000/check_barcode', { barcode })
-        .then((response) => {
-          if (response.data.status === 'success') {
-            setPlantData(response.data.data);
-            setError('');
-          } else if (response.data.status === 'not_found') {
-            setPlantData(null);
-            setError('Barcode not found');
-          }
-        })
-        .catch((error) => {
-          setError('Error fetching data');
-          console.error(error);
-        });
-    } else {
-      // Clear the plant data if the barcode is modified (and is not 7 digits)
-      setPlantData(null);
-      setError('');
+      fetchPlantData();
+    } else if (barcode.length === 0) {
+      resetData();
     }
-  }, [barcode]);
+  }, [barcode]);  
+
+  useEffect(() => {
+    if (plantData && selectedProperty) {
+      setInputValue(plantData[selectedProperty] || '');
+    } else {
+      setInputValue('');
+    }
+  }, [plantData, selectedProperty]);
+
+  const fetchPlantData = () => {
+    axios
+      .post('http://localhost:5000/check_barcode', { barcode })
+      .then((response) => {
+        if (response.data.status === 'success') {
+          setPlantData(response.data.data);
+          setError('');
+        } else if (response.data.status === 'not_found') {
+          resetData();
+          setError('Barcode not found');
+        }
+      })
+      .catch((error) => {
+        resetData();
+        setError('Error fetching data');
+        console.error(error);
+      });
+  };
+
+  const resetData = () => {
+    setPlantData(null);
+    setError('');
+    setInputValue('');
+  };
 
   const handleBarcodeChange = (e) => {
     const value = e.target.value;
-    // Allow only numbers and limit to 7 digits
     if (/^\d{0,7}$/.test(value)) {
       setBarcode(value);
     }
@@ -62,14 +76,13 @@ const FQLab = ({ setView }) => {
       .then((response) => {
         if (response.data.status === 'success') {
           alert(response.data.message);
-          // Refresh plant data
-          axios.post('http://localhost:5000/check_barcode', { barcode }).then((response) => {
-            if (response.data.status === 'success') {
-              setPlantData(response.data.data);
-            }
-          });
-          setInputValue('');
-          setSelectedProperty('');
+          resetData();
+          setBarcode('');
+          if (barcodeInputRef.current) {
+            setTimeout(() => {
+              barcodeInputRef.current.focus();
+            }, 0);
+          }
         } else {
           alert(response.data.message || 'Error updating plant data');
         }
@@ -80,13 +93,12 @@ const FQLab = ({ setView }) => {
       });
   };
 
-  // Function to conditionally style missing or null values
   const renderDataField = (label, value) => (
     <Grid item xs={12} sm={6}>
       <Typography
         variant="body1"
         sx={{
-          backgroundColor: !value ? '#FFCCCB' : 'transparent', // Light red for missing values
+          backgroundColor: !value ? '#FFCCCB' : 'transparent',
           padding: '4px',
           borderRadius: '4px',
           display: 'flex',
@@ -146,8 +158,7 @@ const FQLab = ({ setView }) => {
             Fruit Quality
           </Typography>
 
-          {/* Barcode Entry Section */}
-          <Box>
+          <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <Input
               ref={barcodeInputRef}
               value={barcode}
@@ -155,35 +166,34 @@ const FQLab = ({ setView }) => {
               placeholder="Scan or Enter Barcode"
               type="text"
               inputProps={{ maxLength: 7, pattern: '[0-9]*', inputMode: 'numeric' }}
-              sx={{ marginTop: 2, width: '100%' }}
+              sx={{ marginTop: 2, width: '50%' }}
               autoFocus
             />
-            <Typography variant="body2" sx={{ marginTop: 1 }}>
+            <Typography variant="body2" sx={{ marginTop: 1, textAlign: 'center' }}>
               Please enter a 7-digit barcode.
             </Typography>
           </Box>
 
-          {/* Conditional Input Field and Update Button */}
           {plantData && selectedProperty && (
-            <Box sx={{ mt: 2, width: '100%' }}>
+            <Box sx={{ mt: 2, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               <Input
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 placeholder={`Enter new ${selectedProperty}`}
                 type="text"
-                sx={{ width: '100%' }}
+                sx={{ width: '50%' }}
               />
-              <Button variant="solid" color="primary" sx={{ mt: 1 }} onClick={handleUpdate}>
-                Update
-              </Button>
+              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 1 }}>
+                <Button variant="solid" color="primary" onClick={handleUpdate}>
+                  Update
+                </Button>
+              </Box>
             </Box>
           )}
 
-          {/* Data Preview Section */}
           <Box sx={{ marginTop: 1, width: '100%' }}>
             {plantData ? (
               <Box sx={{ marginTop: 2, width: '100%' }}>
-                {/* Large styled Genotype */}
                 <Typography
                   variant="h1"
                   sx={{
@@ -196,7 +206,6 @@ const FQLab = ({ setView }) => {
                 >
                   {plantData.genotype || 'N/A'}
                 </Typography>
-                {/* Render data fields in a responsive grid */}
                 <Grid container spacing={2}>
                   {renderDataField('Stage', plantData.stage)}
                   {renderDataField('Site', plantData.site)}
@@ -221,7 +230,9 @@ const FQLab = ({ setView }) => {
                 {error}
               </Typography>
             ) : (
-              <Typography variant="body2">No data to display</Typography>
+              <Typography variant="body2" sx={{ textAlign: 'center' }}>
+                No data to display
+              </Typography>
             )}
           </Box>
         </Box>
@@ -231,3 +242,4 @@ const FQLab = ({ setView }) => {
 };
 
 export default FQLab;
+
