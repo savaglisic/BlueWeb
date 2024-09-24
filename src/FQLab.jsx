@@ -57,10 +57,13 @@ const FQLab = ({ setView }) => {
         backgroundColor: !value ? '#FFCCCB' : 'transparent', // Light red for missing values
         padding: '4px',
         borderRadius: '4px',
-        marginBottom: '8px',
+        marginBottom: '12px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        width: '100%',
       }}
     >
-      {label}: {value || 'N/A'}
+      <strong>{label}:</strong> <span>{value || 'N/A'}</span>
     </Typography>
   );
 
@@ -74,7 +77,6 @@ const FQLab = ({ setView }) => {
           justifyContent: 'center',
           alignItems: 'center',
           backgroundColor: '#87CEEB',
-          /* Remove overflow: 'hidden' */
         }}
       >
         <Box
@@ -88,7 +90,7 @@ const FQLab = ({ setView }) => {
             borderRadius: 'md',
             backgroundColor: '#ffffff',
             width: '100%',
-            maxWidth: '600px',
+            maxWidth: '400px', // Widen the max width for better layout
             boxSizing: 'border-box',
             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
             overflowY: 'auto',
@@ -120,9 +122,9 @@ const FQLab = ({ setView }) => {
           </Box>
 
           {/* Data Preview Section */}
-          <Box sx={{ marginTop: 1 }}>
+          <Box sx={{ marginTop: 1, width: '100%' }}>
             {plantData ? (
-              <Box sx={{ marginTop: 2 }}>
+              <Box sx={{ marginTop: 2, width: '100%' }}>
                 {/* Large styled Genotype */}
                 <Typography
                   variant="h1"
@@ -131,7 +133,7 @@ const FQLab = ({ setView }) => {
                     fontStyle: 'italic',
                     marginBottom: '16px',
                     textAlign: 'center',
-                    fontSize: '16px'
+                    fontSize: '32px', // Larger genotype text
                   }}
                 >
                   {plantData.genotype || 'N/A'}
