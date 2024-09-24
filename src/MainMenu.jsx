@@ -140,7 +140,7 @@ const MainMenu = ({ setView }) => {
               onClick={() => setView('searchPedigree')}  
             >
               <SearchIcon fontSize="large" />
-              <Typography sx={{ color: 'white', marginTop: '8px' }}>Search Pedigree Database</Typography>
+              <Typography sx={{ color: 'white', marginTop: '8px' }}>Pedigree Database</Typography>
             </IconButton>
             <IconButton
               sx={{
