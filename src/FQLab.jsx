@@ -148,7 +148,7 @@ const FQLab = ({ setView }) => {
                 {renderDataField('Bush Plant Number', plantData.bush_plant_number)}
                 {renderDataField('Mass', plantData.mass)}
                 {renderDataField('Number of Berries', plantData.number_of_berries)}
-                {renderDataField('Berry Mass', plantData.x_berry_mass)}
+                {renderDataField('X Berry Mass', plantData.x_berry_mass)}
                 {renderDataField('pH', plantData.ph)}
                 {renderDataField('Brix', plantData.brix)}
                 {renderDataField('Juice Mass', plantData.juicemass)}
@@ -156,9 +156,8 @@ const FQLab = ({ setView }) => {
                 {renderDataField('ML Added', plantData.mladded)}
                 {renderDataField('Average Firmness', plantData.avg_firmness)}
                 {renderDataField('Average Diameter', plantData.avg_diameter)}
-                {renderDataField('Firmness SD', plantData.sd_firmness)}
-                {renderDataField('Diameter SD', plantData.sd_diameter)}
-                {renderDataField('Box', plantData.box)}
+                {renderDataField('SD Firmness', plantData.sd_firmness)}
+                {renderDataField('SD Diameter', plantData.sd_diameter)}
               </Box>
             ) : error ? (
               <Typography variant="body2" sx={{ color: 'red' }}>
