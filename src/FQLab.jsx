@@ -49,52 +49,61 @@ const FQLab = ({ setView }) => {
     }
   };
 
+  // Function to conditionally style missing or null values
+  const renderDataField = (label, value) => (
+    <Typography
+      variant="body1"
+      sx={{
+        backgroundColor: !value ? '#FFCCCB' : 'transparent', // Light red for missing values
+        padding: '4px',
+        borderRadius: '4px',
+        marginBottom: '8px',
+      }}
+    >
+      {label}: {value || 'N/A'}
+    </Typography>
+  );
+
   return (
     <CssVarsProvider>
       <Box
         sx={{
           display: 'flex',
-          flexDirection: 'column', // One white box with column layout
           height: '100vh',
           width: '100vw',
           justifyContent: 'center',
           alignItems: 'center',
           backgroundColor: '#87CEEB',
+          /* Remove overflow: 'hidden' */
         }}
       >
-        {/* Single White Box Containing Both Sections */}
         <Box
+          className="scrollable-box"
           sx={{
-            padding: 3,
-            backgroundColor: '#ffffff',
-            borderRadius: 'md',
-            boxSizing: 'border-box',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-            width: '90%',
-            maxWidth: '800px',
-            minHeight: '400px',
+            position: 'relative',
             display: 'flex',
             flexDirection: 'column',
-            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: 3,
+            borderRadius: 'md',
+            backgroundColor: '#ffffff',
+            width: '100%',
+            maxWidth: '600px',
+            boxSizing: 'border-box',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
             overflowY: 'auto',
+            maxHeight: '90vh',
           }}
         >
-          <IconButton
-            sx={{
-              position: 'absolute',
-              top: 10,
-              left: 10,
-            }}
-            onClick={() => setView('mainMenu')}
-          >
+          <IconButton sx={{ position: 'absolute', top: 10, left: 10 }} onClick={() => setView('mainMenu')}>
             <HomeIcon />
           </IconButton>
+          <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'black' }}>
+            Fruit Quality
+          </Typography>
 
           {/* Barcode Entry Section */}
           <Box>
-            <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
-              Barcode Entry
-            </Typography>
             <Input
               ref={barcodeInputRef}
               value={barcode}
@@ -117,29 +126,39 @@ const FQLab = ({ setView }) => {
             </Typography>
             {plantData ? (
               <Box sx={{ marginTop: 2 }}>
-                <Typography variant="h6" sx={{ fontStyle: 'italic' }}>
-                  Genotype: {plantData.genotype}
+                {/* Large styled Genotype */}
+                <Typography
+                  variant="h1"
+                  sx={{
+                    fontWeight: 'bold',
+                    fontStyle: 'italic',
+                    marginBottom: '16px',
+                    textAlign: 'center',
+                    fontSize: '16px'
+                  }}
+                >
+                  {plantData.genotype || 'N/A'}
                 </Typography>
-                <Typography variant="body1">Stage: {plantData.stage}</Typography>
-                <Typography variant="body1">Site: {plantData.site}</Typography>
-                <Typography variant="body1">Block: {plantData.block}</Typography>
-                {/* Add the rest of the plant data */}
-                <Typography variant="body2">Project: {plantData.project}</Typography>
-                <Typography variant="body2">Post Harvest: {plantData.post_harvest}</Typography>
-                <Typography variant="body2">Bush Plant Number: {plantData.bush_plant_number}</Typography>
-                <Typography variant="body2">Mass: {plantData.mass}</Typography>
-                <Typography variant="body2">Number of Berries: {plantData.number_of_berries}</Typography>
-                <Typography variant="body2">Berry Mass: {plantData.x_berry_mass}</Typography>
-                <Typography variant="body2">pH: {plantData.ph}</Typography>
-                <Typography variant="body2">Brix: {plantData.brix}</Typography>
-                <Typography variant="body2">Juice Mass: {plantData.juicemass}</Typography>
-                <Typography variant="body2">TTA: {plantData.tta}</Typography>
-                <Typography variant="body2">ML Added: {plantData.mladded}</Typography>
-                <Typography variant="body2">Average Firmness: {plantData.avg_firmness}</Typography>
-                <Typography variant="body2">Average Diameter: {plantData.avg_diameter}</Typography>
-                <Typography variant="body2">Firmness SD: {plantData.sd_firmness}</Typography>
-                <Typography variant="body2">Diameter SD: {plantData.sd_diameter}</Typography>
-                <Typography variant="body2">Box: {plantData.box}</Typography>
+                {/* Render each data field, highlighting missing values */}
+                {renderDataField('Stage', plantData.stage)}
+                {renderDataField('Site', plantData.site)}
+                {renderDataField('Block', plantData.block)}
+                {renderDataField('Project', plantData.project)}
+                {renderDataField('Post Harvest', plantData.post_harvest)}
+                {renderDataField('Bush Plant Number', plantData.bush_plant_number)}
+                {renderDataField('Mass', plantData.mass)}
+                {renderDataField('Number of Berries', plantData.number_of_berries)}
+                {renderDataField('Berry Mass', plantData.x_berry_mass)}
+                {renderDataField('pH', plantData.ph)}
+                {renderDataField('Brix', plantData.brix)}
+                {renderDataField('Juice Mass', plantData.juicemass)}
+                {renderDataField('TTA', plantData.tta)}
+                {renderDataField('ML Added', plantData.mladded)}
+                {renderDataField('Average Firmness', plantData.avg_firmness)}
+                {renderDataField('Average Diameter', plantData.avg_diameter)}
+                {renderDataField('Firmness SD', plantData.sd_firmness)}
+                {renderDataField('Diameter SD', plantData.sd_diameter)}
+                {renderDataField('Box', plantData.box)}
               </Box>
             ) : error ? (
               <Typography variant="body2" sx={{ color: 'red' }}>
@@ -156,4 +175,5 @@ const FQLab = ({ setView }) => {
 };
 
 export default FQLab;
+
 
