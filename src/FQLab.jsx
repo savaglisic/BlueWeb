@@ -121,9 +121,6 @@ const FQLab = ({ setView }) => {
 
           {/* Data Preview Section */}
           <Box sx={{ marginTop: 4 }}>
-            <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
-              Data Preview
-            </Typography>
             {plantData ? (
               <Box sx={{ marginTop: 2 }}>
                 {/* Large styled Genotype */}
