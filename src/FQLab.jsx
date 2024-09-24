@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Box, Typography, Input, IconButton, CssVarsProvider, Grid } from '@mui/joy';
+import React, { useState, useEffect, useRef } from 'react'; 
+import { Box, Typography, Input, IconButton, CssVarsProvider, Grid, Select, Option, Button } from '@mui/joy';
 import HomeIcon from '@mui/icons-material/Home';
 import axios from 'axios';
 
@@ -8,6 +8,8 @@ const FQLab = ({ setView }) => {
   const [plantData, setPlantData] = useState(null);
   const [error, setError] = useState('');
   const barcodeInputRef = useRef(null);
+  const [selectedProperty, setSelectedProperty] = useState('');
+  const [inputValue, setInputValue] = useState('');
 
   // Automatically focus the barcode field on page load
   useEffect(() => {
@@ -47,6 +49,35 @@ const FQLab = ({ setView }) => {
     if (/^\d{0,7}$/.test(value)) {
       setBarcode(value);
     }
+  };
+
+  const handleUpdate = () => {
+    const dataToSend = {
+      barcode,
+      [selectedProperty]: inputValue,
+    };
+
+    axios
+      .post('http://localhost:5000/add_plant_data', dataToSend)
+      .then((response) => {
+        if (response.data.status === 'success') {
+          alert(response.data.message);
+          // Refresh plant data
+          axios.post('http://localhost:5000/check_barcode', { barcode }).then((response) => {
+            if (response.data.status === 'success') {
+              setPlantData(response.data.data);
+            }
+          });
+          setInputValue('');
+          setSelectedProperty('');
+        } else {
+          alert(response.data.message || 'Error updating plant data');
+        }
+      })
+      .catch((error) => {
+        console.error(error);
+        alert('Error updating plant data');
+      });
   };
 
   // Function to conditionally style missing or null values
@@ -91,7 +122,7 @@ const FQLab = ({ setView }) => {
             borderRadius: 'md',
             backgroundColor: '#ffffff',
             width: '100%',
-            maxWidth: '800px', // Widen the max width for better layout
+            maxWidth: '800px',
             boxSizing: 'border-box',
             boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
             overflowY: 'auto',
@@ -101,6 +132,16 @@ const FQLab = ({ setView }) => {
           <IconButton sx={{ position: 'absolute', top: 10, left: 10 }} onClick={() => setView('mainMenu')}>
             <HomeIcon />
           </IconButton>
+          <Select
+            value={selectedProperty}
+            onChange={(e, newValue) => setSelectedProperty(newValue)}
+            placeholder="Select Property"
+            sx={{ position: 'absolute', top: 10, right: 10, minWidth: '120px' }}
+          >
+            <Option value="ph">pH</Option>
+            <Option value="brix">Brix</Option>
+            <Option value="tta">TTA</Option>
+          </Select>
           <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'black' }}>
             Fruit Quality
           </Typography>
@@ -122,6 +163,22 @@ const FQLab = ({ setView }) => {
             </Typography>
           </Box>
 
+          {/* Conditional Input Field and Update Button */}
+          {plantData && selectedProperty && (
+            <Box sx={{ mt: 2, width: '100%' }}>
+              <Input
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                placeholder={`Enter new ${selectedProperty}`}
+                type="text"
+                sx={{ width: '100%' }}
+              />
+              <Button variant="solid" color="primary" sx={{ mt: 1 }} onClick={handleUpdate}>
+                Update
+              </Button>
+            </Box>
+          )}
+
           {/* Data Preview Section */}
           <Box sx={{ marginTop: 1, width: '100%' }}>
             {plantData ? (
@@ -134,7 +191,7 @@ const FQLab = ({ setView }) => {
                     fontStyle: 'italic',
                     marginBottom: '16px',
                     textAlign: 'center',
-                    fontSize: '42px', // Larger genotype text
+                    fontSize: '42px',
                   }}
                 >
                   {plantData.genotype || 'N/A'}
