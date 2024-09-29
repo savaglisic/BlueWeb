@@ -43,6 +43,9 @@ const FQDatabase = ({ setView }) => {
   // Responsive columns
   const theme = useTheme();
 
+  // Define important fields
+  const importantFields = ['barcode', 'genotype', 'stage', 'site', 'block', 'project'];
+
   // Define columns with priorities
   const columns = [
     { field: 'barcode', label: 'Barcode', priority: 1 },
@@ -74,8 +77,8 @@ const FQDatabase = ({ setView }) => {
 
   // Determine visible columns based on screen size with more granularity
   const breakpoints = [
-    { maxWidth: 400, priorityThreshold: 3 },
-    { maxWidth: 600, priorityThreshold: 5 },
+    { maxWidth: 400, priorityThreshold: 6 },
+    { maxWidth: 600, priorityThreshold: 6 },
     { maxWidth: 800, priorityThreshold: 8 },
     { maxWidth: 1000, priorityThreshold: 12 },
     { maxWidth: 1200, priorityThreshold: 16 },
@@ -101,8 +104,9 @@ const FQDatabase = ({ setView }) => {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  // Ensure important columns are always visible
   const visibleColumns = columns.filter(
-    (col) => col.priority <= columnPriorityThreshold
+    (col) => col.priority <= columnPriorityThreshold || importantFields.includes(col.field)
   );
 
   // Fetch plant data
@@ -210,6 +214,15 @@ const FQDatabase = ({ setView }) => {
     }
   };
 
+  // Render header label with capping for non-important fields
+  const renderHeaderLabel = (col) => {
+    if (importantFields.includes(col.field)) {
+      return col.label;
+    } else {
+      return col.label.length > 12 ? col.label.substring(0, 12) + '...' : col.label;
+    }
+  };
+
   return (
     <CssVarsProvider>
       <Box
@@ -309,6 +322,7 @@ const FQDatabase = ({ setView }) => {
                   whiteSpace: 'nowrap',
                   textOverflow: 'ellipsis',
                   overflow: 'hidden',
+                  padding: '0.5em',
                 },
                 '& th, & td': {
                   whiteSpace: 'nowrap',
@@ -320,19 +334,23 @@ const FQDatabase = ({ setView }) => {
                 '& tbody tr:hover': {
                   backgroundColor: theme.palette.background.level2,
                 },
-                '& th:nth-of-type(-n+2), & td:nth-of-type(-n+2)': {
-                  minWidth: '10em',
+                '& th.important-column, & td.important-column': {
                   whiteSpace: 'normal',
                   overflow: 'visible',
+                  textOverflow: 'clip',
+                  minWidth: '8em',
                 },
               }}
             >
               <thead>
                 <tr>
                   {visibleColumns.map((col) => (
-                    <th key={col.field}>
+                    <th
+                      key={col.field}
+                      className={importantFields.includes(col.field) ? 'important-column' : ''}
+                    >
                       <Tooltip title={col.label} placement="top">
-                        <span>{col.label}</span>
+                        <span>{renderHeaderLabel(col)}</span>
                       </Tooltip>
                     </th>
                   ))}
@@ -346,7 +364,10 @@ const FQDatabase = ({ setView }) => {
                     style={{ cursor: 'pointer' }}
                   >
                     {visibleColumns.map((col) => (
-                      <td key={col.field}>
+                      <td
+                        key={col.field}
+                        className={importantFields.includes(col.field) ? 'important-column' : ''}
+                      >
                         {plant[col.field] != null ? plant[col.field] : ''}
                       </td>
                     ))}
@@ -407,3 +428,4 @@ const FQDatabase = ({ setView }) => {
 };
 
 export default FQDatabase;
+
