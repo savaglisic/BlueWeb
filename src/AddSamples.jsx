@@ -160,7 +160,7 @@ const AddSamples = ({ setView }) => {
         if (data.message === 'Exact match found') {
           if (isNaN(inputGenotype) && inputGenotype[0] !== inputGenotype[0].toUpperCase()) {
             const correctedGenotype = inputGenotype.charAt(0).toUpperCase() + inputGenotype.slice(1);
-            setGenotypeSuggestion(`to capitalize genotype ${correctedGenotype}`);
+            setGenotypeSuggestion(`Did you mean to capitalize genotype ${correctedGenotype}`);
           } else {
             setGenotypeSuggestion(''); 
           }
