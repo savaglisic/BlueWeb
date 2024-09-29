@@ -42,11 +42,6 @@ const FQDatabase = ({ setView }) => {
 
   // Responsive columns
   const theme = useTheme();
-  const isSmallScreen = useMediaQuery('(max-width:600px)');
-  const isMediumScreen = useMediaQuery(
-    '(min-width:600px) and (max-width:960px)'
-  );
-  const isLargeScreen = useMediaQuery('(min-width:960px)');
 
   // Define columns with priorities
   const columns = [
@@ -77,16 +72,34 @@ const FQDatabase = ({ setView }) => {
   // Sort columns by priority
   const sortedColumns = columns.slice().sort((a, b) => a.priority - b.priority);
 
-  // Determine visible columns based on screen size
-  let columnPriorityThreshold;
+  // Determine visible columns based on screen size with more granularity
+  const breakpoints = [
+    { maxWidth: 400, priorityThreshold: 3 },
+    { maxWidth: 600, priorityThreshold: 5 },
+    { maxWidth: 800, priorityThreshold: 8 },
+    { maxWidth: 1000, priorityThreshold: 12 },
+    { maxWidth: 1200, priorityThreshold: 16 },
+  ];
 
-  if (isSmallScreen) {
-    columnPriorityThreshold = 5;
-  } else if (isMediumScreen) {
-    columnPriorityThreshold = 10;
-  } else {
-    columnPriorityThreshold = 22; // Show all columns
-  }
+  const [columnPriorityThreshold, setColumnPriorityThreshold] = useState(22);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const width = window.innerWidth;
+      let threshold = 22; // Default to show all columns
+      for (let i = 0; i < breakpoints.length; i++) {
+        if (width <= breakpoints[i].maxWidth) {
+          threshold = breakpoints[i].priorityThreshold;
+          break;
+        }
+      }
+      setColumnPriorityThreshold(threshold);
+    };
+
+    window.addEventListener('resize', handleResize);
+    handleResize(); // Call it initially
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const visibleColumns = columns.filter(
     (col) => col.priority <= columnPriorityThreshold
@@ -254,18 +267,20 @@ const FQDatabase = ({ setView }) => {
               alignItems: 'flex-end',
             }}
           >
-            {Object.keys(searchFilters).map((filterKey) => (
-              <FormControl key={filterKey} sx={{ width: '200px' }}>
-                <FormLabel>{filterKey}</FormLabel>
-                <Input
-                  placeholder={filterKey}
-                  value={searchFilters[filterKey]}
-                  onChange={(e) =>
-                    handleSearchChange(filterKey, e.target.value)
-                  }
-                />
-              </FormControl>
-            ))}
+            {sortedColumns
+              .filter((col) => searchFilters.hasOwnProperty(col.field))
+              .map((col) => (
+                <FormControl key={col.field} sx={{ width: '15%' }}>
+                  <FormLabel>{col.label}</FormLabel>
+                  <Input
+                    placeholder={col.label}
+                    value={searchFilters[col.field]}
+                    onChange={(e) =>
+                      handleSearchChange(col.field, e.target.value)
+                    }
+                  />
+                </FormControl>
+              ))}
             <Button variant="solid" onClick={handleSearch}>
               Search
             </Button>
@@ -297,7 +312,7 @@ const FQDatabase = ({ setView }) => {
                 },
                 '& th, & td': {
                   whiteSpace: 'nowrap',
-                  padding: '8px',
+                  padding: '0.5em',
                   fontSize: '0.875rem',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
@@ -306,7 +321,7 @@ const FQDatabase = ({ setView }) => {
                   backgroundColor: theme.palette.background.level2,
                 },
                 '& th:nth-of-type(-n+2), & td:nth-of-type(-n+2)': {
-                  minWidth: '150px',
+                  minWidth: '10em',
                   whiteSpace: 'normal',
                   overflow: 'visible',
                 },
@@ -354,6 +369,7 @@ const FQDatabase = ({ setView }) => {
           <Modal open={editDialogOpen} onClose={handleDialogClose}>
             <ModalDialog
               sx={{
+                width: '90%',
                 maxWidth: '500px',
                 overflowY: 'auto',
                 maxHeight: '90vh',
