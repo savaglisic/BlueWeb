@@ -307,7 +307,7 @@ const AddSamples = ({ setView }) => {
                   <Typography sx={{ color: 'red', fontStyle: 'italic' }} >
                     {genotypeSuggestion === 'No match found'
                       ? 'Are you sure? Not in Database.'
-                      : `Did you mean: ${genotypeSuggestion}?`}
+                      : `${genotypeSuggestion}?`}
                   </Typography>
                 )}
               </FormControl>
