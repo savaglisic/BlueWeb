@@ -69,7 +69,7 @@ const LoginPage = ({ onLoginSuccess }) => {
         user_name: email.split('@')[0], // Simple username generation, you can adjust this
         password,
       });
-      if (response.data.status === 'update_successful') {
+      if (response.data.status === 'user_created_successfully') {
         setMessage('Account created successfully! You can now log in.');
         setError(false);
         setIsNewUser(false); // Revert to login mode
