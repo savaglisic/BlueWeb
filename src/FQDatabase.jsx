@@ -159,7 +159,7 @@ const FQDatabase = ({ setView }) => {
         per_page: perPage,
         ...searchFilters,
       };
-      const response = await axios.get('http://localhost:5000/get_plant_data', {
+      const response = await axios.get('/api/get_plant_data', {
         params,
       });
       const data = response.data;
@@ -201,7 +201,7 @@ const FQDatabase = ({ setView }) => {
   const handleSaveChanges = async () => {
     try {
       // Send update to the backend
-      await axios.post('http://localhost:5000/add_plant_data', selectedPlant);
+      await axios.post('/api/add_plant_data', selectedPlant);
       // Update plant data in state
       setPlantData((prevData) =>
         prevData.map((plant) =>

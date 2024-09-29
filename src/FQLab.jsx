@@ -35,7 +35,7 @@ const FQLab = ({ setView }) => {
 
   const fetchPlantData = () => {
     axios
-      .post('http://localhost:5000/check_barcode', { barcode })
+      .post('/api/check_barcode', { barcode })
       .then((response) => {
         if (response.data.status === 'success') {
           setPlantData(response.data.data);
@@ -72,7 +72,7 @@ const FQLab = ({ setView }) => {
     };
 
     axios
-      .post('http://localhost:5000/add_plant_data', dataToSend)
+      .post('/api/add_plant_data', dataToSend)
       .then((response) => {
         if (response.data.status === 'success') {
           alert(response.data.message);

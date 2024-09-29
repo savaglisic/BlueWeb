@@ -67,7 +67,7 @@ const AddSamples = ({ setView }) => {
 
   useEffect(() => {
     // Fetch options for select fields
-    fetch('http://localhost:5000/option_config')
+    fetch('/api/option_config')
       .then((response) => response.json())
       .then((data) => {
         const groupedOptions = data.options.reduce((acc, option) => {
@@ -110,7 +110,7 @@ const AddSamples = ({ setView }) => {
   };
 
   const checkBarcodeInBackend = (barcode) => {
-    fetch('http://localhost:5000/check_barcode', {
+    fetch('/api/check_barcode', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ barcode }),
@@ -150,7 +150,7 @@ const AddSamples = ({ setView }) => {
   };
 
   const spellCheckGenotype = (inputGenotype) => {
-    fetch('http://localhost:5000/spell_check', {
+    fetch('/api/spell_check', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ input_string: inputGenotype }),
@@ -184,7 +184,7 @@ const AddSamples = ({ setView }) => {
       }
     });
 
-    fetch('http://localhost:5000/add_plant_data', {
+    fetch('/api/add_plant_data', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(cleanedData),

@@ -20,14 +20,14 @@ const ConfigureApp = ({ setView }) => {
 
   useEffect(() => {
     // Fetch Email Whitelist
-    fetch('http://localhost:5000/email_whitelist')
+    fetch('/api/email_whitelist')
       .then((response) => response.json())
       .then((data) => {
         setEmailWhitelist(data.emails);
       });
 
     // Fetch Option Configs
-    fetch('http://localhost:5000/option_config')
+    fetch('/api/option_config')
       .then((response) => response.json())
       .then((data) => {
         const groupedOptions = {};
@@ -44,7 +44,7 @@ const ConfigureApp = ({ setView }) => {
 
   const handleAddEmail = () => {
     if (!newEmail) return;
-    fetch('http://localhost:5000/email_whitelist', {
+    fetch('/api/email_whitelist', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: newEmail }),
@@ -61,7 +61,7 @@ const ConfigureApp = ({ setView }) => {
   };
 
   const handleDeleteEmail = (email) => {
-    fetch(`http://localhost:5000/email_whitelist/${encodeURIComponent(email)}`, {
+    fetch(`/api/email_whitelist/${encodeURIComponent(email)}`, {
       method: 'DELETE',
     })
       .then((response) => response.json())
@@ -77,7 +77,7 @@ const ConfigureApp = ({ setView }) => {
   const handleAddOption = (optionType) => {
     const optionText = newOptionTexts[optionType];
     if (!optionText) return;
-    fetch('http://localhost:5000/option_config', {
+    fetch('/api/option_config', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ option_type: optionType, option_text: optionText }),
@@ -98,7 +98,7 @@ const ConfigureApp = ({ setView }) => {
   };
 
   const handleDeleteOption = (optionType, id) => {
-    fetch(`http://localhost:5000/option_config/${id}`, {
+    fetch(`/api/option_config/${id}`, {
       method: 'DELETE',
     })
       .then((response) => response.json())

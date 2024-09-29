@@ -22,7 +22,7 @@ const SearchPedigreeDatabase = ({ setView }) => {
     setLoading(true);
 
     try {
-      const response = await axios.get('http://localhost:5000/search_genotype', {
+      const response = await axios.get('/api/search_genotype', {
         params: { genotype: searchTerm },
       });
       setSearchResults(response.data);
