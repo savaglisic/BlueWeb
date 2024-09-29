@@ -1,4 +1,3 @@
-// FQDatabase.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
@@ -11,8 +10,9 @@ import {
   ModalDialog,
   FormControl,
   FormLabel,
+  Table,
+  Tooltip,
 } from '@mui/joy';
-import Table from '@mui/joy/Table';
 import HomeIcon from '@mui/icons-material/Home';
 import axios from 'axios';
 import { useTheme } from '@mui/joy/styles';
@@ -26,6 +26,7 @@ const FQDatabase = ({ setView }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const perPage = 20;
   const [searchFilters, setSearchFilters] = useState({
+    barcode: '',
     genotype: '',
     stage: '',
     site: '',
@@ -39,19 +40,65 @@ const FQDatabase = ({ setView }) => {
 
   const containerRef = useRef();
 
+  // Responsive columns
+  const theme = useTheme();
+  const isSmallScreen = useMediaQuery('(max-width:600px)');
+  const isMediumScreen = useMediaQuery('(min-width:600px) and (max-width:960px)');
+  const isLargeScreen = useMediaQuery('(min-width:960px)');
+
+  // Define columns with priorities
+  const columns = [
+    { field: 'barcode', label: 'Barcode', priority: 1 },
+    { field: 'genotype', label: 'Genotype', priority: 2 },
+    { field: 'stage', label: 'Stage', priority: 3 },
+    { field: 'site', label: 'Site', priority: 4 },
+    { field: 'block', label: 'Block', priority: 5 },
+    { field: 'project', label: 'Project', priority: 6 },
+    { field: 'post_harvest', label: 'Post Harvest', priority: 7 },
+    { field: 'bush_plant_number', label: 'Bush Plant Number', priority: 8 },
+    { field: 'notes', label: 'Notes', priority: 9 },
+    { field: 'mass', label: 'Mass', priority: 10 },
+    { field: 'x_berry_mass', label: 'X Berry Mass', priority: 11 },
+    { field: 'number_of_berries', label: 'Number of Berries', priority: 12 },
+    { field: 'ph', label: 'pH', priority: 13 },
+    { field: 'brix', label: 'Brix', priority: 14 },
+    { field: 'juicemass', label: 'Juice Mass', priority: 15 },
+    { field: 'tta', label: 'TTA', priority: 16 },
+    { field: 'mladded', label: 'ml Added', priority: 17 },
+    { field: 'avg_firmness', label: 'Avg Firmness', priority: 18 },
+    { field: 'avg_diameter', label: 'Avg Diameter', priority: 19 },
+    { field: 'sd_firmness', label: 'SD Firmness', priority: 20 },
+    { field: 'sd_diameter', label: 'SD Diameter', priority: 21 },
+    { field: 'box', label: 'Box', priority: 22 },
+  ];
+
+  // Determine visible columns based on screen size
+  let columnPriorityThreshold;
+
+  if (isSmallScreen) {
+    columnPriorityThreshold = 5;
+  } else if (isMediumScreen) {
+    columnPriorityThreshold = 10;
+  } else {
+    columnPriorityThreshold = 22; // Show all columns
+  }
+
+  const visibleColumns = columns.filter(
+    (col) => col.priority <= columnPriorityThreshold
+  );
+
   // Fetch plant data
   useEffect(() => {
-    // Prevent duplicate fetch on initial render
+    // Fetch data on initial render
     fetchPlantData(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    // Fetch data when search filters change
+  // Handle search
+  const handleSearch = () => {
     setCurrentPage(1);
     fetchPlantData(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchFilters]);
+  };
 
   useEffect(() => {
     // Fetch additional pages
@@ -148,45 +195,6 @@ const FQDatabase = ({ setView }) => {
     }
   };
 
-  // Responsive columns
-  const theme = useTheme();
-  const isMobile = useMediaQuery('(max-width:600px)');
-
-  // Define columns with priorities
-  const columns = [
-    { field: 'barcode', label: 'Barcode', priority: 1 },
-    { field: 'genotype', label: 'Genotype', priority: 2 },
-    { field: 'stage', label: 'Stage', priority: 3 },
-    { field: 'site', label: 'Site', priority: 4 },
-    { field: 'block', label: 'Block', priority: 5 },
-    { field: 'project', label: 'Project', priority: 6 },
-    { field: 'post_harvest', label: 'Post Harvest', priority: 7 },
-    { field: 'bush_plant_number', label: 'Bush Plant Number', priority: 8 },
-    { field: 'notes', label: 'Notes', priority: 9 },
-    { field: 'mass', label: 'Mass', priority: 10 },
-    { field: 'x_berry_mass', label: 'X Berry Mass', priority: 11 },
-    { field: 'number_of_berries', label: 'Number of Berries', priority: 12 },
-    { field: 'ph', label: 'pH', priority: 13 },
-    { field: 'brix', label: 'Brix', priority: 14 },
-    { field: 'juicemass', label: 'Juice Mass', priority: 15 },
-    { field: 'tta', label: 'TTA', priority: 16 },
-    { field: 'mladded', label: 'ml Added', priority: 17 },
-    { field: 'avg_firmness', label: 'Avg Firmness', priority: 18 },
-    { field: 'avg_diameter', label: 'Avg Diameter', priority: 19 },
-    { field: 'sd_firmness', label: 'SD Firmness', priority: 20 },
-    { field: 'sd_diameter', label: 'SD Diameter', priority: 21 },
-    { field: 'box', label: 'Box', priority: 22 },
-  ];
-
-  // Determine visible columns based on screen size
-  const visibleColumns = columns.filter((col) => {
-    // For mobile, only show high priority columns
-    if (isMobile) {
-      return col.priority <= 5; // Adjust as needed
-    }
-    return true;
-  });
-
   return (
     <CssVarsProvider>
       <Box
@@ -241,6 +249,7 @@ const FQDatabase = ({ setView }) => {
               gap: 2,
               marginTop: 2,
               justifyContent: 'center',
+              alignItems: 'flex-end',
             }}
           >
             {Object.keys(searchFilters).map((filterKey) => (
@@ -255,6 +264,9 @@ const FQDatabase = ({ setView }) => {
                 />
               </FormControl>
             ))}
+            <Button variant="solid" onClick={handleSearch}>
+              Search
+            </Button>
           </Box>
 
           {/* Table */}
@@ -276,17 +288,29 @@ const FQDatabase = ({ setView }) => {
                 minWidth: '800px',
                 '& thead th': {
                   backgroundColor: theme.palette.background.level1,
+                  fontSize: '0.875rem',
+                  whiteSpace: 'nowrap',
+                  textOverflow: 'ellipsis',
+                  overflow: 'hidden',
                 },
                 '& th, & td': {
                   whiteSpace: 'nowrap',
                   padding: '8px',
+                  fontSize: '0.875rem',
+                },
+                '& tbody tr:hover': {
+                  backgroundColor: theme.palette.background.level2,
                 },
               }}
             >
               <thead>
                 <tr>
                   {visibleColumns.map((col) => (
-                    <th key={col.field}>{col.label}</th>
+                    <th key={col.field}>
+                      <Tooltip title={col.label} placement="top">
+                        <span>{col.label}</span>
+                      </Tooltip>
+                    </th>
                   ))}
                 </tr>
               </thead>
@@ -298,7 +322,9 @@ const FQDatabase = ({ setView }) => {
                     style={{ cursor: 'pointer' }}
                   >
                     {visibleColumns.map((col) => (
-                      <td key={col.field}>{plant[col.field]}</td>
+                      <td key={col.field}>
+                        {plant[col.field] != null ? plant[col.field] : ''}
+                      </td>
                     ))}
                   </tr>
                 ))}
