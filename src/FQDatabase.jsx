@@ -338,7 +338,8 @@ const FQDatabase = ({ setView }) => {
                   whiteSpace: 'normal',
                   overflow: 'visible',
                   textOverflow: 'clip',
-                  minWidth: '8em',
+                  width: '4.4em',
+                  minWidth: '12em', 
                 },
               }}
             >
@@ -428,4 +429,5 @@ const FQDatabase = ({ setView }) => {
 };
 
 export default FQDatabase;
+
 
