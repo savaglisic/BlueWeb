@@ -72,6 +72,26 @@ const FQDatabase = ({ setView }) => {
     { field: 'box', label: 'Box', priority: 22 },
   ];
 
+  // Abbreviations for non-important columns
+  const abbreviations = {
+    'Post Harvest': 'PostHarv',
+    'Bush Plant Number': 'BushNo',
+    'Notes': 'Notes',
+    'Mass': 'Mass',
+    'X Berry Mass': 'XBerryM',
+    'Number of Berries': 'NumBerr',
+    'pH': 'pH',
+    'Brix': 'Brix',
+    'Juice Mass': 'JuiceM',
+    'TTA': 'TTA',
+    'ml Added': 'mlAdded',
+    'Avg Firmness': 'AvgFirm',
+    'Avg Diameter': 'AvgDiam',
+    'SD Firmness': 'SDFirm',
+    'SD Diameter': 'SDDiam',
+    'Box': 'Box',
+  };
+
   // Sort columns by priority
   const sortedColumns = columns.slice().sort((a, b) => a.priority - b.priority);
 
@@ -106,7 +126,8 @@ const FQDatabase = ({ setView }) => {
 
   // Ensure important columns are always visible
   const visibleColumns = columns.filter(
-    (col) => col.priority <= columnPriorityThreshold || importantFields.includes(col.field)
+    (col) =>
+      col.priority <= columnPriorityThreshold || importantFields.includes(col.field)
   );
 
   // Fetch plant data
@@ -138,10 +159,9 @@ const FQDatabase = ({ setView }) => {
         per_page: perPage,
         ...searchFilters,
       };
-      const response = await axios.get(
-        'http://localhost:5000/get_plant_data',
-        { params }
-      );
+      const response = await axios.get('http://localhost:5000/get_plant_data', {
+        params,
+      });
       const data = response.data;
       if (reset) {
         setPlantData(data.results);
@@ -214,12 +234,12 @@ const FQDatabase = ({ setView }) => {
     }
   };
 
-  // Render header label with capping for non-important fields
+  // Render header label with abbreviations for non-important fields
   const renderHeaderLabel = (col) => {
     if (importantFields.includes(col.field)) {
       return col.label;
     } else {
-      return col.label.length > 12 ? col.label.substring(0, 12) + '...' : col.label;
+      return abbreviations[col.label] || col.label;
     }
   };
 
@@ -262,10 +282,7 @@ const FQDatabase = ({ setView }) => {
             <HomeIcon />
           </IconButton>
 
-          <Typography
-            level="h4"
-            sx={{ fontWeight: 'bold', textAlign: 'center' }}
-          >
+          <Typography level="h4" sx={{ fontWeight: 'bold', textAlign: 'center' }}>
             FQ Database
           </Typography>
 
@@ -288,9 +305,7 @@ const FQDatabase = ({ setView }) => {
                   <Input
                     placeholder={col.label}
                     value={searchFilters[col.field]}
-                    onChange={(e) =>
-                      handleSearchChange(col.field, e.target.value)
-                    }
+                    onChange={(e) => handleSearchChange(col.field, e.target.value)}
                   />
                 </FormControl>
               ))}
@@ -316,6 +331,7 @@ const FQDatabase = ({ setView }) => {
               stickyHeader
               sx={{
                 minWidth: '800px',
+                tableLayout: 'fixed',
                 '& thead th': {
                   backgroundColor: theme.palette.background.level1,
                   fontSize: '0.875rem',
@@ -338,8 +354,7 @@ const FQDatabase = ({ setView }) => {
                   whiteSpace: 'normal',
                   overflow: 'visible',
                   textOverflow: 'clip',
-                  width: '4.4em',
-                  minWidth: '12em', 
+                  width: '4.5em',
                 },
               }}
             >
@@ -348,7 +363,9 @@ const FQDatabase = ({ setView }) => {
                   {visibleColumns.map((col) => (
                     <th
                       key={col.field}
-                      className={importantFields.includes(col.field) ? 'important-column' : ''}
+                      className={
+                        importantFields.includes(col.field) ? 'important-column' : ''
+                      }
                     >
                       <Tooltip title={col.label} placement="top">
                         <span>{renderHeaderLabel(col)}</span>
@@ -367,7 +384,9 @@ const FQDatabase = ({ setView }) => {
                     {visibleColumns.map((col) => (
                       <td
                         key={col.field}
-                        className={importantFields.includes(col.field) ? 'important-column' : ''}
+                        className={
+                          importantFields.includes(col.field) ? 'important-column' : ''
+                        }
                       >
                         {plant[col.field] != null ? plant[col.field] : ''}
                       </td>
@@ -406,15 +425,11 @@ const FQDatabase = ({ setView }) => {
                     <FormLabel>{col.label}</FormLabel>
                     <Input
                       value={selectedPlant[col.field] || ''}
-                      onChange={(e) =>
-                        handleEditChange(col.field, e.target.value)
-                      }
+                      onChange={(e) => handleEditChange(col.field, e.target.value)}
                     />
                   </FormControl>
                 ))}
-              <Box
-                sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}
-              >
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
                 <Button variant="plain" onClick={handleDialogClose}>
                   Cancel
                 </Button>
@@ -429,5 +444,4 @@ const FQDatabase = ({ setView }) => {
 };
 
 export default FQDatabase;
-
 
