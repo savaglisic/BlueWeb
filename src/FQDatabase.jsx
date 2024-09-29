@@ -17,7 +17,6 @@ import HomeIcon from '@mui/icons-material/Home';
 import axios from 'axios';
 import { useTheme } from '@mui/joy/styles';
 import useMediaQuery from '@mui/material/useMediaQuery';
-import { FixedSizeList as List } from 'react-window';
 
 const FQDatabase = ({ setView }) => {
   // State variables
@@ -42,12 +41,23 @@ const FQDatabase = ({ setView }) => {
 
   // Fetch plant data
   useEffect(() => {
+    // Prevent duplicate fetch on initial render
+    fetchPlantData(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    // Fetch data when search filters change
+    setCurrentPage(1);
     fetchPlantData(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchFilters]);
 
   useEffect(() => {
-    fetchPlantData();
+    // Fetch additional pages
+    if (currentPage > 1) {
+      fetchPlantData(false);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage]);
 
@@ -59,7 +69,10 @@ const FQDatabase = ({ setView }) => {
         per_page: perPage,
         ...searchFilters,
       };
-      const response = await axios.get('http://localhost:5000/get_plant_data', { params });
+      const response = await axios.get(
+        'http://localhost:5000/get_plant_data',
+        { params }
+      );
       const data = response.data;
       if (reset) {
         setPlantData(data.results);
@@ -99,7 +112,10 @@ const FQDatabase = ({ setView }) => {
   const handleSaveChanges = async () => {
     try {
       // Send update to the backend
-      await axios.post('http://localhost:5000/add_or_update_plant', selectedPlant);
+      await axios.post(
+        'http://localhost:5000/add_plant_data',
+        selectedPlant
+      );
       // Update plant data in state
       setPlantData((prevData) =>
         prevData.map((plant) =>
@@ -114,11 +130,10 @@ const FQDatabase = ({ setView }) => {
 
   // Handle search input changes
   const handleSearchChange = (field, value) => {
-    setSearchFilters({
-      ...searchFilters,
+    setSearchFilters((prevFilters) => ({
+      ...prevFilters,
       [field]: value,
-    });
-    setCurrentPage(1);
+    }));
   };
 
   // Handle scroll for lazy loading
@@ -171,22 +186,6 @@ const FQDatabase = ({ setView }) => {
     }
     return true;
   });
-
-  // Virtualized row renderer
-  const Row = ({ index, style }) => {
-    const plant = plantData[index];
-    return (
-      <tr
-        style={style}
-        onClick={() => handleRowClick(plant)}
-        key={plant.id}
-        >
-        {visibleColumns.map((col) => (
-          <td key={col.field}>{plant[col.field]}</td>
-        ))}
-      </tr>
-    );
-  };
 
   return (
     <CssVarsProvider>
@@ -263,13 +262,27 @@ const FQDatabase = ({ setView }) => {
             ref={containerRef}
             sx={{
               overflowY: 'auto',
+              overflowX: 'auto',
               marginTop: 2,
               width: '100%',
               height: '100%',
             }}
             onScroll={handleScroll}
           >
-            <Table aria-label="plant data table">
+            <Table
+              aria-label="plant data table"
+              stickyHeader
+              sx={{
+                minWidth: '800px',
+                '& thead th': {
+                  backgroundColor: theme.palette.background.level1,
+                },
+                '& th, & td': {
+                  whiteSpace: 'nowrap',
+                  padding: '8px',
+                },
+              }}
+            >
               <thead>
                 <tr>
                   {visibleColumns.map((col) => (
@@ -278,21 +291,28 @@ const FQDatabase = ({ setView }) => {
                 </tr>
               </thead>
               <tbody>
-                <List
-                  height={500}
-                  itemCount={plantData.length}
-                  itemSize={50}
-                  width="100%"
-                >
-                  {Row}
-                </List>
+                {plantData.map((plant) => (
+                  <tr
+                    key={plant.id}
+                    onClick={() => handleRowClick(plant)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    {visibleColumns.map((col) => (
+                      <td key={col.field}>{plant[col.field]}</td>
+                    ))}
+                  </tr>
+                ))}
+                {isFetching && (
+                  <tr>
+                    <td colSpan={visibleColumns.length}>
+                      <Typography sx={{ textAlign: 'center', padding: 2 }}>
+                        Loading...
+                      </Typography>
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </Table>
-            {isFetching && (
-              <Typography sx={{ textAlign: 'center', padding: 2 }}>
-                Loading...
-              </Typography>
-            )}
           </Box>
 
           {/* Edit Dialog */}
