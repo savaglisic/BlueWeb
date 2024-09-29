@@ -43,7 +43,9 @@ const FQDatabase = ({ setView }) => {
   // Responsive columns
   const theme = useTheme();
   const isSmallScreen = useMediaQuery('(max-width:600px)');
-  const isMediumScreen = useMediaQuery('(min-width:600px) and (max-width:960px)');
+  const isMediumScreen = useMediaQuery(
+    '(min-width:600px) and (max-width:960px)'
+  );
   const isLargeScreen = useMediaQuery('(min-width:960px)');
 
   // Define columns with priorities
@@ -71,6 +73,9 @@ const FQDatabase = ({ setView }) => {
     { field: 'sd_diameter', label: 'SD Diameter', priority: 21 },
     { field: 'box', label: 'Box', priority: 22 },
   ];
+
+  // Sort columns by priority
+  const sortedColumns = columns.slice().sort((a, b) => a.priority - b.priority);
 
   // Determine visible columns based on screen size
   let columnPriorityThreshold;
@@ -159,10 +164,7 @@ const FQDatabase = ({ setView }) => {
   const handleSaveChanges = async () => {
     try {
       // Send update to the backend
-      await axios.post(
-        'http://localhost:5000/add_plant_data',
-        selectedPlant
-      );
+      await axios.post('http://localhost:5000/add_plant_data', selectedPlant);
       // Update plant data in state
       setPlantData((prevData) =>
         prevData.map((plant) =>
@@ -297,9 +299,16 @@ const FQDatabase = ({ setView }) => {
                   whiteSpace: 'nowrap',
                   padding: '8px',
                   fontSize: '0.875rem',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
                 },
                 '& tbody tr:hover': {
                   backgroundColor: theme.palette.background.level2,
+                },
+                '& th:nth-of-type(-n+2), & td:nth-of-type(-n+2)': {
+                  minWidth: '150px',
+                  whiteSpace: 'normal',
+                  overflow: 'visible',
                 },
               }}
             >
@@ -354,18 +363,20 @@ const FQDatabase = ({ setView }) => {
                 Edit Plant Data
               </Typography>
               {selectedPlant &&
-                Object.keys(selectedPlant).map((field) => (
-                  <FormControl key={field} sx={{ marginBottom: 2 }}>
-                    <FormLabel>{field}</FormLabel>
+                sortedColumns.map((col) => (
+                  <FormControl key={col.field} sx={{ marginBottom: 2 }}>
+                    <FormLabel>{col.label}</FormLabel>
                     <Input
-                      value={selectedPlant[field] || ''}
+                      value={selectedPlant[col.field] || ''}
                       onChange={(e) =>
-                        handleEditChange(field, e.target.value)
+                        handleEditChange(col.field, e.target.value)
                       }
                     />
                   </FormControl>
                 ))}
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
+              <Box
+                sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}
+              >
                 <Button variant="plain" onClick={handleDialogClose}>
                   Cancel
                 </Button>
