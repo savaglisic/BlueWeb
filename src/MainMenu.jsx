@@ -116,6 +116,7 @@ const MainMenu = ({ setView }) => {
                 justifyContent: 'center',
               }}
               variant="solid"
+              onClick={() => setView('fqDatabase')}
             >
               <DatabaseIcon fontSize="large" />
               <Typography sx={{ color: 'white', marginTop: '8px' }}>FQ Database</Typography>
