@@ -113,7 +113,7 @@ const MainMenu = ({ setView }) => {
         </>
       );
     } else {
-      return null; // No buttons for other user groups or if there's an error
+      return null; 
     }
   };
 
