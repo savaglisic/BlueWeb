@@ -11,9 +11,20 @@ import { GlobalStyles, CssVarsProvider } from '@mui/joy';
 const App = () => {
   const [view, setView] = useState(localStorage.getItem('userEmail') ? 'mainMenu' : 'login');
 
-  const handleLoginSuccess = (email) => {
+  const handleLoginSuccess = async (email) => {
     localStorage.setItem('userEmail', email);
-    setView('mainMenu');
+    try {
+      const response = await fetch(`/api/get_user_group?email=${encodeURIComponent(email)}`);
+      const data = await response.json();
+      if (response.ok && data.status === 'success') {
+        localStorage.setItem('userGroup', data.user_group);
+        setView('mainMenu'); 
+      } else {
+        console.error('User group not found or request failed:', data);
+      }
+    } catch (error) {
+      console.error('Error fetching user group:', error);
+    }
   };
 
   return (

@@ -14,6 +14,7 @@ const MainMenu = ({ setView }) => {
 
   const handleLogout = () => {
     localStorage.removeItem('userEmail');
+    localStorage.removeItem('userGroup');
     window.location.reload();
   };
 
