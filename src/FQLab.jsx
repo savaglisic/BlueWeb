@@ -10,6 +10,27 @@ const FQLab = ({ setView }) => {
   const barcodeInputRef = useRef(null);
   const [selectedProperty, setSelectedProperty] = useState('');
   const [inputValue, setInputValue] = useState('');
+  const [optionConfigs, setOptionConfigs] = useState({});
+  const [rangeError, setRangeError] = useState('');
+  const [override, setOverride] = useState(false);
+
+  useEffect(() => {
+    // Fetch option configs on initialization
+    fetch('/api/option_config')
+      .then((response) => response.json())
+      .then((data) => {
+        const ranges = {};
+        data.options.forEach((option) => {
+          if (option.option_type.includes('range')) {
+            ranges[option.option_type] = option.option_text;
+          }
+        });
+        setOptionConfigs(ranges);
+      })
+      .catch((error) => {
+        console.error('Error fetching option configs:', error);
+      });
+  }, []);
 
   useEffect(() => {
     if (barcodeInputRef.current) {
@@ -23,7 +44,7 @@ const FQLab = ({ setView }) => {
     } else if (barcode.length === 0) {
       resetData();
     }
-  }, [barcode]);  
+  }, [barcode]);
 
   useEffect(() => {
     if (plantData && selectedProperty) {
@@ -31,6 +52,8 @@ const FQLab = ({ setView }) => {
     } else {
       setInputValue('');
     }
+    setRangeError('');
+    setOverride(false);
   }, [plantData, selectedProperty]);
 
   const fetchPlantData = () => {
@@ -56,6 +79,9 @@ const FQLab = ({ setView }) => {
     setPlantData(null);
     setError('');
     setInputValue('');
+    setSelectedProperty('');
+    setRangeError('');
+    setOverride(false);
   };
 
   const handleBarcodeChange = (e) => {
@@ -66,6 +92,11 @@ const FQLab = ({ setView }) => {
   };
 
   const handleUpdate = () => {
+    if (!override && !isValueInRange()) {
+      setRangeError(`Value is out of expected range (${getExpectedRange()}).`);
+      return;
+    }
+
     const dataToSend = {
       barcode,
       [selectedProperty]: inputValue,
@@ -91,6 +122,22 @@ const FQLab = ({ setView }) => {
         console.error(error);
         alert('Error updating plant data');
       });
+  };
+
+  const getExpectedRange = () => {
+    const rangeKey = `${selectedProperty}_range`;
+    return optionConfigs[rangeKey] || '';
+  };
+
+  const isValueInRange = () => {
+    const range = getExpectedRange();
+    if (!range) return true; // No range configured
+    const [minStr, maxStr] = range.split('-');
+    const min = parseFloat(minStr);
+    const max = parseFloat(maxStr);
+    const value = parseFloat(inputValue);
+    if (isNaN(value) || isNaN(min) || isNaN(max)) return false;
+    return value >= min && value <= max;
   };
 
   const renderDataField = (label, value) => (
@@ -176,6 +223,9 @@ const FQLab = ({ setView }) => {
 
           {plantData && selectedProperty && (
             <Box sx={{ mt: 2, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <Typography variant="body1" sx={{ marginBottom: 1 }}>
+                Expected Range for {selectedProperty.toUpperCase()}: {getExpectedRange() || 'N/A'}
+              </Typography>
               <Input
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
@@ -183,10 +233,30 @@ const FQLab = ({ setView }) => {
                 type="text"
                 sx={{ width: '50%' }}
               />
+              {rangeError && (
+                <Typography variant="body2" sx={{ color: 'red', mt: 1 }}>
+                  {rangeError}
+                </Typography>
+              )}
               <Box sx={{ display: 'flex', justifyContent: 'center', mt: 1 }}>
-                <Button variant="solid" color="primary" onClick={handleUpdate}>
+                <Button
+                  variant="solid"
+                  color="primary"
+                  onClick={handleUpdate}
+                  disabled={!inputValue || (!override && rangeError)}
+                >
                   Update
                 </Button>
+                {rangeError && !override && (
+                  <Button
+                    variant="outlined"
+                    color="warning"
+                    onClick={() => setOverride(true)}
+                    sx={{ ml: 2 }}
+                  >
+                    Override and Submit
+                  </Button>
+                )}
               </Box>
             </Box>
           )}
