@@ -6,22 +6,24 @@ import {
   CssVarsProvider,
   Input,
   Button,
-  Modal,
-  ModalDialog,
   FormControl,
   FormLabel,
   Table,
   Tooltip,
-  Checkbox,
 } from '@mui/joy';
 import HomeIcon from '@mui/icons-material/Home';
 import axios from 'axios';
 import { useTheme } from '@mui/joy/styles';
 
+// Components & config from our separate files
+import { columns, abbreviations, importantFields, getSortedColumns } from './columns';
+import ColumnSelectionModal from './ColumnSelectionModal';
+import EditPlantDataDialog from './EditPlantDialog';
+
 const FQDatabase = ({ setView }) => {
   // --- Constants ---
   const MIN_COLUMNS = 2;   // must at least show barcode & genotype
-  const MAX_COLUMNS = 22;  // adjust as desired
+  const MAX_COLUMNS = 22;  // or set to whatever max you want
 
   // --- State variables ---
   const [plantData, setPlantData] = useState([]);
@@ -38,6 +40,7 @@ const FQDatabase = ({ setView }) => {
     project: '',
     post_harvest: '',
   });
+
   const [selectedPlant, setSelectedPlant] = useState(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
@@ -46,7 +49,19 @@ const FQDatabase = ({ setView }) => {
   const [columnModalOpen, setColumnModalOpen] = useState(false);
 
   // Default selected columns
-  const defaultSelectedFields = ['barcode', 'genotype', 'stage', 'site', 'block', 'project','post_harvest', 'mass', 'ph', 'brix', 'tta'];
+  const defaultSelectedFields = [
+    'barcode',
+    'genotype',
+    'stage',
+    'site',
+    'block',
+    'project',
+    'post_harvest',
+    'mass',
+    'ph',
+    'brix',
+    'tta',
+  ];
 
   // Which columns are currently selected by the user
   const [selectedFields, setSelectedFields] = useState(defaultSelectedFields);
@@ -54,60 +69,13 @@ const FQDatabase = ({ setView }) => {
   const containerRef = useRef();
   const theme = useTheme();
 
-  // Important fields that must always be visible
-  const importantFields = ['barcode', 'genotype'];
-
-  // Define all possible columns
-  const columns = [
-    { field: 'barcode', label: 'Barcode', priority: 1 },
-    { field: 'genotype', label: 'Genotype', priority: 2 },
-    { field: 'stage', label: 'Stage', priority: 3 },
-    { field: 'site', label: 'Site', priority: 4 },
-    { field: 'block', label: 'Block', priority: 5 },
-    { field: 'project', label: 'Project', priority: 6 },
-    { field: 'post_harvest', label: 'Post Harvest', priority: 7 },
-    { field: 'bush_plant_number', label: 'Bush Plant Number', priority: 8 },
-    { field: 'notes', label: 'Notes', priority: 9 },
-    { field: 'mass', label: 'Mass', priority: 10 },
-    { field: 'x_berry_mass', label: 'X Berry Mass', priority: 11 },
-    { field: 'number_of_berries', label: 'Number of Berries', priority: 12 },
-    { field: 'ph', label: 'pH', priority: 13 },
-    { field: 'brix', label: 'Brix', priority: 14 },
-    { field: 'juicemass', label: 'Juice Mass', priority: 15 },
-    { field: 'tta', label: 'TTA', priority: 16 },
-    { field: 'mladded', label: 'ml Added', priority: 17 },
-    { field: 'avg_firmness', label: 'Avg Firmness', priority: 18 },
-    { field: 'avg_diameter', label: 'Avg Diameter', priority: 19 },
-    { field: 'sd_firmness', label: 'SD Firmness', priority: 20 },
-    { field: 'sd_diameter', label: 'SD Diameter', priority: 21 },
-    { field: 'box', label: 'Box', priority: 22 },
-  ];
-
-  // Abbreviations for some columns
-  const abbreviations = {
-    'Post Harvest': 'PostHarv',
-    'Bush Plant Number': 'BushNo',
-    'Notes': 'Notes',
-    'Mass': 'Mass',
-    'X Berry Mass': 'XBerryM',
-    'Number of Berries': 'NumBerr',
-    'pH': 'pH',
-    'Brix': 'Brix',
-    'Juice Mass': 'JuiceM',
-    'TTA': 'TTA',
-    'ml Added': 'mlAdded',
-    'Avg Firmness': 'AvgFirm',
-    'Avg Diameter': 'AvgDiam',
-    'SD Firmness': 'SDFirm',
-    'SD Diameter': 'SDDiam',
-    'Box': 'Box',
-  };
-
   // Sort columns by priority (lowest first)
-  const sortedColumns = columns.slice().sort((a, b) => a.priority - b.priority);
+  const sortedColumns = getSortedColumns();
 
   // Columns we actually display in the table are those the user has selected
-  const visibleColumns = sortedColumns.filter((col) => selectedFields.includes(col.field));
+  const visibleColumns = sortedColumns.filter((col) =>
+    selectedFields.includes(col.field)
+  );
 
   // --- Effects ---
 
@@ -185,7 +153,7 @@ const FQDatabase = ({ setView }) => {
     try {
       await axios.post('/api/add_plant_data', selectedPlant);
       setPlantData((prevData) =>
-        prevData.map((plant) => (plant.id === selectedPlant.id ? selectedPlant : plant))
+        prevData.map((p) => (p.id === selectedPlant.id ? selectedPlant : p))
       );
       handleDialogClose();
     } catch (error) {
@@ -234,8 +202,6 @@ const FQDatabase = ({ setView }) => {
         updated = updated.filter((f) => f !== field);
 
         // Ensure we never go below the 2 mandatory columns
-        // (We only block user from unchecking mandatory fields,
-        // so we won't actually get below 2, but check anyway).
         if (updated.length < MIN_COLUMNS) {
           return prev;
         }
@@ -243,8 +209,7 @@ const FQDatabase = ({ setView }) => {
       } else {
         // adding a column
         if (updated.length >= MAX_COLUMNS) {
-          // Reached max, do not add
-          return prev;
+          return prev; // Reached max, do not add
         }
         updated.push(field);
         return updated;
@@ -406,6 +371,7 @@ const FQDatabase = ({ setView }) => {
                     ))}
                   </tr>
                 ))}
+
                 {isFetching && (
                   <tr>
                     <td colSpan={visibleColumns.length}>
@@ -420,82 +386,26 @@ const FQDatabase = ({ setView }) => {
           </Box>
 
           {/* Edit Dialog */}
-          <Modal open={editDialogOpen} onClose={handleDialogClose}>
-            <ModalDialog
-              sx={{
-                width: '90%',
-                maxWidth: '500px',
-                overflowY: 'auto',
-                maxHeight: '90vh',
-              }}
-            >
-              <Typography level="h5" sx={{ mb: 2 }}>
-                Edit Plant Data
-              </Typography>
-              {selectedPlant &&
-                sortedColumns.map((col) => (
-                  <FormControl key={col.field} sx={{ marginBottom: 2 }}>
-                    <FormLabel>{col.label}</FormLabel>
-                    <Input
-                      value={selectedPlant[col.field] || ''}
-                      onChange={(e) => handleEditChange(col.field, e.target.value)}
-                    />
-                  </FormControl>
-                ))}
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1 }}>
-                <Button variant="plain" onClick={handleDialogClose}>
-                  Cancel
-                </Button>
-                <Button onClick={handleSaveChanges}>Save</Button>
-              </Box>
-            </ModalDialog>
-          </Modal>
+          <EditPlantDataDialog
+            open={editDialogOpen}
+            onClose={handleDialogClose}
+            sortedColumns={sortedColumns}
+            selectedPlant={selectedPlant}
+            handleEditChange={handleEditChange}
+            handleSaveChanges={handleSaveChanges}
+          />
 
           {/* Column Selection Modal */}
-          <Modal open={columnModalOpen} onClose={handleCloseColumnModal}>
-            <ModalDialog
-              sx={{
-                width: '90%',
-                maxWidth: '400px',
-                overflowY: 'auto',
-                maxHeight: '80vh',
-              }}
-            >
-              <Typography level="h5" sx={{ mb: 2 }}>
-                Select Columns
-              </Typography>
-
-              {sortedColumns.map((col) => {
-                const isChecked = selectedFields.includes(col.field);
-                const isDisabled = importantFields.includes(col.field);
-                return (
-                  <Box
-                    key={col.field}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      mb: 1,
-                    }}
-                  >
-                    <Typography>{col.label}</Typography>
-                    <Checkbox
-                      disabled={isDisabled}
-                      checked={isChecked}
-                      onChange={() => handleToggleColumn(col.field)}
-                    />
-                  </Box>
-                );
-              })}
-
-              <Typography level="body2" sx={{ mt: 1, mb: 1 }}>
-                (Must always include Barcode & Genotype; max {MAX_COLUMNS} columns.)
-              </Typography>
-              <Button variant="solid" onClick={handleCloseColumnModal}>
-                Done
-              </Button>
-            </ModalDialog>
-          </Modal>
+          <ColumnSelectionModal
+            open={columnModalOpen}
+            onClose={handleCloseColumnModal}
+            sortedColumns={sortedColumns}
+            selectedFields={selectedFields}
+            handleToggleColumn={handleToggleColumn}
+            importantFields={importantFields}
+            MIN_COLUMNS={MIN_COLUMNS}
+            MAX_COLUMNS={MAX_COLUMNS}
+          />
         </Box>
       </Box>
     </CssVarsProvider>
@@ -503,5 +413,4 @@ const FQDatabase = ({ setView }) => {
 };
 
 export default FQDatabase;
-
 

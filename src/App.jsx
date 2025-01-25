@@ -5,7 +5,7 @@ import SearchPedigreeDatabase from './SearchPedigreeDatabase';
 import AddSamples from './AddSamples'; 
 import ConfigureApp from './ConfigureApp';
 import FQLab from './FQLab';
-import FQDatabase from './FQDatabase';
+import FQDatabase from './FQDatabaseTable/FQDatabase';
 import { GlobalStyles, CssVarsProvider } from '@mui/joy';
 
 const App = () => {
