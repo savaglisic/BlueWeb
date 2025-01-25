@@ -9,8 +9,15 @@ import ScienceIcon from '@mui/icons-material/Science';
 import '@fontsource/roboto';
 
 const MainMenu = ({ setView }) => {
-  const [userGroup, setUserGroup] = useState(localStorage.getItem('userGroup') || '');
-  const userEmail = localStorage.getItem('userEmail') || '';
+  // Store userGroup in state
+  const [userGroup, setUserGroup] = useState(() => localStorage.getItem('userGroup') || '');
+  
+  // Also store userEmail in state, so we can debug it properly
+  const [userEmail, setUserEmail] = useState(() => {
+    const storedEmail = localStorage.getItem('userEmail') || '';
+    return storedEmail.trim().toLowerCase(); // optionally normalizing for debugging
+  });
+  
   const croppedEmail = userEmail.split('@')[0];
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -20,12 +27,18 @@ const MainMenu = ({ setView }) => {
     window.location.reload();
   };
 
+  // Log for debugging
+  useEffect(() => {
+    console.log('Debug: userEmail =', userEmail);
+    console.log('Debug: userGroup =', userGroup);
+  }, [userEmail, userGroup]);
+
   useEffect(() => {
     const fetchUserGroup = async () => {
       try {
         const response = await fetch(`/get_user_group?email=${encodeURIComponent(userEmail)}`);
         const data = await response.json();
-        
+
         if (response.ok && data.status === 'success') {
           localStorage.setItem('userGroup', data.user_group);
           setUserGroup(data.user_group);
@@ -38,6 +51,7 @@ const MainMenu = ({ setView }) => {
       }
     };
 
+    // Only fetch if we have an email but no group yet
     if (userEmail && !userGroup) {
       fetchUserGroup();
     } else if (!userEmail) {
@@ -46,7 +60,12 @@ const MainMenu = ({ setView }) => {
   }, [userEmail, userGroup]);
 
   const renderButtons = () => {
-    if (userGroup === 'ops') {
+    // Debugging logs:
+    console.log('renderButtons: userGroup =', userGroup, ' userEmail =', userEmail);
+  
+    // Check admin or special email first
+    if (userGroup === 'admin' || userEmail === 'savaglisic@ufl.edu') {
+      // Admin-level (or special email) buttons
       return (
         <>
           <IconButton
@@ -55,7 +74,9 @@ const MainMenu = ({ setView }) => {
             onClick={() => setView('addSamples')}
           >
             <AddCircleOutlineIcon fontSize="large" />
-            <Typography sx={{ color: 'white', marginTop: '8px' }}>Add Samples</Typography>
+            <Typography sx={{ color: 'white', marginTop: '8px' }}>
+              Add Samples
+            </Typography>
           </IconButton>
           <IconButton
             sx={buttonStyles}
@@ -63,28 +84,9 @@ const MainMenu = ({ setView }) => {
             onClick={() => setView('fqLab')}
           >
             <ScienceIcon fontSize="large" />
-            <Typography sx={{ color: 'white', marginTop: '8px' }}>FQ Lab</Typography>
-          </IconButton>
-        </>
-      );
-    } else if (userGroup === 'admin') {
-      return (
-        <>
-          <IconButton
-            sx={buttonStyles}
-            variant="solid"
-            onClick={() => setView('addSamples')}
-          >
-            <AddCircleOutlineIcon fontSize="large" />
-            <Typography sx={{ color: 'white', marginTop: '8px' }}>Add Samples</Typography>
-          </IconButton>
-          <IconButton
-            sx={buttonStyles}
-            variant="solid"
-            onClick={() => setView('fqLab')}
-          >
-            <ScienceIcon fontSize="large" />
-            <Typography sx={{ color: 'white', marginTop: '8px' }}>FQ Lab</Typography>
+            <Typography sx={{ color: 'white', marginTop: '8px' }}>
+              FQ Lab
+            </Typography>
           </IconButton>
           <IconButton
             sx={buttonStyles}
@@ -92,7 +94,9 @@ const MainMenu = ({ setView }) => {
             onClick={() => setView('fqDatabase')}
           >
             <DatabaseIcon fontSize="large" />
-            <Typography sx={{ color: 'white', marginTop: '8px' }}>FQ Database</Typography>
+            <Typography sx={{ color: 'white', marginTop: '8px' }}>
+              FQ Database
+            </Typography>
           </IconButton>
           <IconButton
             sx={buttonStyles}
@@ -100,7 +104,9 @@ const MainMenu = ({ setView }) => {
             onClick={() => setView('searchPedigree')}
           >
             <SearchIcon fontSize="large" />
-            <Typography sx={{ color: 'white', marginTop: '8px' }}>Pedigree Database</Typography>
+            <Typography sx={{ color: 'white', marginTop: '8px' }}>
+              Pedigree Database
+            </Typography>
           </IconButton>
           <IconButton
             sx={buttonStyles}
@@ -108,12 +114,42 @@ const MainMenu = ({ setView }) => {
             onClick={() => setView('configureApp')}
           >
             <SettingsIcon fontSize="large" />
-            <Typography sx={{ color: 'white', marginTop: '8px' }}>Configure BlueWeb</Typography>
+            <Typography sx={{ color: 'white', marginTop: '8px' }}>
+              Configure BlueWeb
+            </Typography>
           </IconButton>
         </>
       );
+  
+    } else if (userGroup === 'ops') {
+      // Ops-level buttons
+      return (
+        <>
+          <IconButton
+            sx={buttonStyles}
+            variant="solid"
+            onClick={() => setView('addSamples')}
+          >
+            <AddCircleOutlineIcon fontSize="large" />
+            <Typography sx={{ color: 'white', marginTop: '8px' }}>
+              Add Samples
+            </Typography>
+          </IconButton>
+          <IconButton
+            sx={buttonStyles}
+            variant="solid"
+            onClick={() => setView('fqLab')}
+          >
+            <ScienceIcon fontSize="large" />
+            <Typography sx={{ color: 'white', marginTop: '8px' }}>
+              FQ Lab
+            </Typography>
+          </IconButton>
+        </>
+      );
+  
     } else {
-      return null; 
+      return null;
     }
   };
 
@@ -161,7 +197,11 @@ const MainMenu = ({ setView }) => {
             boxSizing: 'border-box',
           }}
         >
-          <img src="/blueweblogo.png" alt="Blue Web Logo" style={{ width: '200px', height: 'auto', marginBottom: '20px' }} />
+          <img
+            src="/blueweblogo.png"
+            alt="Blue Web Logo"
+            style={{ width: '200px', height: 'auto', marginBottom: '20px' }}
+          />
 
           {errorMessage ? (
             <Typography color="error">{errorMessage}</Typography>
@@ -200,4 +240,5 @@ const MainMenu = ({ setView }) => {
 };
 
 export default MainMenu;
+
 
