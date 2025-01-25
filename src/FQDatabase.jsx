@@ -21,7 +21,7 @@ import { useTheme } from '@mui/joy/styles';
 const FQDatabase = ({ setView }) => {
   // --- Constants ---
   const MIN_COLUMNS = 2;   // must at least show barcode & genotype
-  const MAX_COLUMNS = 10;  // adjust as desired
+  const MAX_COLUMNS = 22;  // adjust as desired
 
   // --- State variables ---
   const [plantData, setPlantData] = useState([]);
@@ -46,7 +46,7 @@ const FQDatabase = ({ setView }) => {
   const [columnModalOpen, setColumnModalOpen] = useState(false);
 
   // Default selected columns
-  const defaultSelectedFields = ['barcode', 'genotype', 'stage', 'site', 'block', 'project','post_harvest', 'ph', 'brix', 'tta'];
+  const defaultSelectedFields = ['barcode', 'genotype', 'stage', 'site', 'block', 'project','post_harvest', 'mass', 'ph', 'brix', 'tta'];
 
   // Which columns are currently selected by the user
   const [selectedFields, setSelectedFields] = useState(defaultSelectedFields);
