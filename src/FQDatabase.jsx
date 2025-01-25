@@ -12,14 +12,18 @@ import {
   FormLabel,
   Table,
   Tooltip,
+  Checkbox,
 } from '@mui/joy';
 import HomeIcon from '@mui/icons-material/Home';
 import axios from 'axios';
 import { useTheme } from '@mui/joy/styles';
-import useMediaQuery from '@mui/material/useMediaQuery';
 
 const FQDatabase = ({ setView }) => {
-  // State variables
+  // --- Constants ---
+  const MIN_COLUMNS = 2;   // must at least show barcode & genotype
+  const MAX_COLUMNS = 10;  // adjust as desired
+
+  // --- State variables ---
   const [plantData, setPlantData] = useState([]);
   const [total, setTotal] = useState(0);
   const [pages, setPages] = useState(0);
@@ -38,15 +42,22 @@ const FQDatabase = ({ setView }) => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
 
-  const containerRef = useRef();
+  // For the "Select Columns" modal
+  const [columnModalOpen, setColumnModalOpen] = useState(false);
 
-  // Responsive columns
+  // Default selected columns
+  const defaultSelectedFields = ['barcode', 'genotype', 'stage', 'site', 'block', 'project','post_harvest', 'ph', 'brix', 'tta'];
+
+  // Which columns are currently selected by the user
+  const [selectedFields, setSelectedFields] = useState(defaultSelectedFields);
+
+  const containerRef = useRef();
   const theme = useTheme();
 
-  // Define important fields
-  const importantFields = ['barcode', 'genotype', 'stage', 'site', 'block', 'project'];
+  // Important fields that must always be visible
+  const importantFields = ['barcode', 'genotype'];
 
-  // Define columns with priorities
+  // Define all possible columns
   const columns = [
     { field: 'barcode', label: 'Barcode', priority: 1 },
     { field: 'genotype', label: 'Genotype', priority: 2 },
@@ -72,7 +83,7 @@ const FQDatabase = ({ setView }) => {
     { field: 'box', label: 'Box', priority: 22 },
   ];
 
-  // Abbreviations for non-important columns
+  // Abbreviations for some columns
   const abbreviations = {
     'Post Harvest': 'PostHarv',
     'Bush Plant Number': 'BushNo',
@@ -92,64 +103,41 @@ const FQDatabase = ({ setView }) => {
     'Box': 'Box',
   };
 
-  // Sort columns by priority
+  // Sort columns by priority (lowest first)
   const sortedColumns = columns.slice().sort((a, b) => a.priority - b.priority);
 
-  // Determine visible columns based on screen size with more granularity
-  const breakpoints = [
-    { maxWidth: 400, priorityThreshold: 6 },
-    { maxWidth: 600, priorityThreshold: 6 },
-    { maxWidth: 800, priorityThreshold: 8 },
-    { maxWidth: 1000, priorityThreshold: 12 },
-    { maxWidth: 1200, priorityThreshold: 16 },
-  ];
+  // Columns we actually display in the table are those the user has selected
+  const visibleColumns = sortedColumns.filter((col) => selectedFields.includes(col.field));
 
-  const [columnPriorityThreshold, setColumnPriorityThreshold] = useState(22);
+  // --- Effects ---
 
+  // Fetch plant data on mount
   useEffect(() => {
-    const handleResize = () => {
-      const width = window.innerWidth;
-      let threshold = 22; // Default to show all columns
-      for (let i = 0; i < breakpoints.length; i++) {
-        if (width <= breakpoints[i].maxWidth) {
-          threshold = breakpoints[i].priorityThreshold;
-          break;
-        }
-      }
-      setColumnPriorityThreshold(threshold);
-    };
-
-    window.addEventListener('resize', handleResize);
-    handleResize(); // Call it initially
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  // Ensure important columns are always visible
-  const visibleColumns = columns.filter(
-    (col) =>
-      col.priority <= columnPriorityThreshold || importantFields.includes(col.field)
-  );
-
-  // Fetch plant data
-  useEffect(() => {
-    // Fetch data on initial render
     fetchPlantData(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Handle search
-  const handleSearch = () => {
-    setCurrentPage(1);
-    fetchPlantData(true);
-  };
-
+  // If user scrolls to bottom and we have more pages, load the next page
   useEffect(() => {
-    // Fetch additional pages
     if (currentPage > 1) {
       fetchPlantData(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage]);
+
+  // --- Handlers / Helpers ---
+
+  const handleSearchChange = (field, value) => {
+    setSearchFilters((prevFilters) => ({
+      ...prevFilters,
+      [field]: value,
+    }));
+  };
+
+  const handleSearch = () => {
+    setCurrentPage(1);
+    fetchPlantData(true);
+  };
 
   const fetchPlantData = async (reset = false) => {
     try {
@@ -159,10 +147,9 @@ const FQDatabase = ({ setView }) => {
         per_page: perPage,
         ...searchFilters,
       };
-      const response = await axios.get('/api/get_plant_data', {
-        params,
-      });
+      const response = await axios.get('/api/get_plant_data', { params });
       const data = response.data;
+
       if (reset) {
         setPlantData(data.results);
       } else {
@@ -177,19 +164,16 @@ const FQDatabase = ({ setView }) => {
     }
   };
 
-  // Handle row click
   const handleRowClick = (plant) => {
     setSelectedPlant(plant);
     setEditDialogOpen(true);
   };
 
-  // Handle edit dialog close
   const handleDialogClose = () => {
     setEditDialogOpen(false);
     setSelectedPlant(null);
   };
 
-  // Handle input changes in edit dialog
   const handleEditChange = (field, value) => {
     setSelectedPlant({
       ...selectedPlant,
@@ -197,16 +181,11 @@ const FQDatabase = ({ setView }) => {
     });
   };
 
-  // Handle save changes
   const handleSaveChanges = async () => {
     try {
-      // Send update to the backend
       await axios.post('/api/add_plant_data', selectedPlant);
-      // Update plant data in state
       setPlantData((prevData) =>
-        prevData.map((plant) =>
-          plant.id === selectedPlant.id ? selectedPlant : plant
-        )
+        prevData.map((plant) => (plant.id === selectedPlant.id ? selectedPlant : plant))
       );
       handleDialogClose();
     } catch (error) {
@@ -214,15 +193,6 @@ const FQDatabase = ({ setView }) => {
     }
   };
 
-  // Handle search input changes
-  const handleSearchChange = (field, value) => {
-    setSearchFilters((prevFilters) => ({
-      ...prevFilters,
-      [field]: value,
-    }));
-  };
-
-  // Handle scroll for lazy loading
   const handleScroll = () => {
     if (
       containerRef.current.scrollHeight - containerRef.current.scrollTop <=
@@ -241,6 +211,45 @@ const FQDatabase = ({ setView }) => {
     } else {
       return abbreviations[col.label] || col.label;
     }
+  };
+
+  // --- Column selection modal logic ---
+  const handleOpenColumnModal = () => {
+    setColumnModalOpen(true);
+  };
+
+  const handleCloseColumnModal = () => {
+    setColumnModalOpen(false);
+  };
+
+  const handleToggleColumn = (field) => {
+    // If the column is "barcode" or "genotype", do nothing (cannot uncheck).
+    if (importantFields.includes(field)) return;
+
+    // If it's already selected, remove it; otherwise, try to add it
+    setSelectedFields((prev) => {
+      let updated = [...prev];
+      if (updated.includes(field)) {
+        // removing a column
+        updated = updated.filter((f) => f !== field);
+
+        // Ensure we never go below the 2 mandatory columns
+        // (We only block user from unchecking mandatory fields,
+        // so we won't actually get below 2, but check anyway).
+        if (updated.length < MIN_COLUMNS) {
+          return prev;
+        }
+        return updated;
+      } else {
+        // adding a column
+        if (updated.length >= MAX_COLUMNS) {
+          // Reached max, do not add
+          return prev;
+        }
+        updated.push(field);
+        return updated;
+      }
+    });
   };
 
   return (
@@ -272,11 +281,7 @@ const FQDatabase = ({ setView }) => {
         >
           {/* Home Icon */}
           <IconButton
-            sx={{
-              position: 'absolute',
-              top: 10,
-              left: 10,
-            }}
+            sx={{ position: 'absolute', top: 10, left: 10 }}
             onClick={() => setView('mainMenu')}
           >
             <HomeIcon />
@@ -285,6 +290,13 @@ const FQDatabase = ({ setView }) => {
           <Typography level="h4" sx={{ fontWeight: 'bold', textAlign: 'center' }}>
             FQ Database
           </Typography>
+
+          {/* "Select Columns" Button */}
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
+            <Button variant="soft" onClick={handleOpenColumnModal}>
+              Select Columns To Display
+            </Button>
+          </Box>
 
           {/* Search Inputs */}
           <Box
@@ -314,7 +326,7 @@ const FQDatabase = ({ setView }) => {
             </Button>
           </Box>
 
-          {/* Table */}
+          {/* Table Container */}
           <Box
             ref={containerRef}
             sx={{
@@ -326,6 +338,7 @@ const FQDatabase = ({ setView }) => {
             }}
             onScroll={handleScroll}
           >
+            {/* Table */}
             <Table
               aria-label="plant data table"
               stickyHeader
@@ -437,6 +450,52 @@ const FQDatabase = ({ setView }) => {
               </Box>
             </ModalDialog>
           </Modal>
+
+          {/* Column Selection Modal */}
+          <Modal open={columnModalOpen} onClose={handleCloseColumnModal}>
+            <ModalDialog
+              sx={{
+                width: '90%',
+                maxWidth: '400px',
+                overflowY: 'auto',
+                maxHeight: '80vh',
+              }}
+            >
+              <Typography level="h5" sx={{ mb: 2 }}>
+                Select Columns
+              </Typography>
+
+              {sortedColumns.map((col) => {
+                const isChecked = selectedFields.includes(col.field);
+                const isDisabled = importantFields.includes(col.field);
+                return (
+                  <Box
+                    key={col.field}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      mb: 1,
+                    }}
+                  >
+                    <Typography>{col.label}</Typography>
+                    <Checkbox
+                      disabled={isDisabled}
+                      checked={isChecked}
+                      onChange={() => handleToggleColumn(col.field)}
+                    />
+                  </Box>
+                );
+              })}
+
+              <Typography level="body2" sx={{ mt: 1, mb: 1 }}>
+                (Must always include Barcode & Genotype; max {MAX_COLUMNS} columns.)
+              </Typography>
+              <Button variant="solid" onClick={handleCloseColumnModal}>
+                Done
+              </Button>
+            </ModalDialog>
+          </Modal>
         </Box>
       </Box>
     </CssVarsProvider>
@@ -444,4 +503,5 @@ const FQDatabase = ({ setView }) => {
 };
 
 export default FQDatabase;
+
 
