@@ -24,6 +24,7 @@ const FQDatabase = ({ setView }) => {
   // --- Constants ---
   const MIN_COLUMNS = 2;   // must at least show barcode & genotype
   const MAX_COLUMNS = 22;  // or set to whatever max you want
+  const LOCAL_STORAGE_KEY = 'FQDB_SELECTED_FIELDS';
 
   // --- State variables ---
   const [plantData, setPlantData] = useState([]);
@@ -63,8 +64,19 @@ const FQDatabase = ({ setView }) => {
     'tta',
   ];
 
-  // Which columns are currently selected by the user
-  const [selectedFields, setSelectedFields] = useState(defaultSelectedFields);
+  /**
+   * Initialize selected fields from localStorage if available,
+   * otherwise use the default list.
+   */
+  const [selectedFields, setSelectedFields] = useState(() => {
+    try {
+      const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+      return saved ? JSON.parse(saved) : defaultSelectedFields;
+    } catch (error) {
+      console.error('Error parsing selected fields from localStorage:', error);
+      return defaultSelectedFields;
+    }
+  });
 
   const containerRef = useRef();
   const theme = useTheme();
@@ -78,6 +90,11 @@ const FQDatabase = ({ setView }) => {
   );
 
   // --- Effects ---
+
+  // Whenever selectedFields changes, save to localStorage
+  useEffect(() => {
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(selectedFields));
+  }, [selectedFields]);
 
   // Fetch plant data on mount
   useEffect(() => {
@@ -143,13 +160,11 @@ const FQDatabase = ({ setView }) => {
   };
 
   const handleEditChange = (field, value) => {
-    setSelectedPlant({
-      ...selectedPlant,
-      [field]: value,
-    });
+    setSelectedPlant((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleSaveChanges = async () => {
+    if (!selectedPlant) return;
     try {
       await axios.post('/api/add_plant_data', selectedPlant);
       setPlantData((prevData) =>
@@ -194,14 +209,13 @@ const FQDatabase = ({ setView }) => {
     // If the column is "barcode" or "genotype", do nothing (cannot uncheck).
     if (importantFields.includes(field)) return;
 
-    // If it's already selected, remove it; otherwise, try to add it
     setSelectedFields((prev) => {
       let updated = [...prev];
       if (updated.includes(field)) {
         // removing a column
         updated = updated.filter((f) => f !== field);
 
-        // Ensure we never go below the 2 mandatory columns
+        // Ensure we never go below mandatory columns
         if (updated.length < MIN_COLUMNS) {
           return prev;
         }
@@ -217,6 +231,7 @@ const FQDatabase = ({ setView }) => {
     });
   };
 
+  // --- Render ---
   return (
     <CssVarsProvider>
       <Box
