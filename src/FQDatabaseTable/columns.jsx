@@ -27,6 +27,8 @@ export const columns = [
   { field: 'sd_firmness', label: 'SD Firmness', priority: 20 },
   { field: 'sd_diameter', label: 'SD Diameter', priority: 21 },
   { field: 'box', label: 'Box', priority: 22 },
+  { field: 'week', label: 'Week', priority: 23 },
+  { field: 'timestamp', label: 'Timestamp', priority: 24 },
 ];
 
 // Abbreviations for some columns
@@ -47,6 +49,8 @@ export const abbreviations = {
   'SD Firmness': 'SDFirm',
   'SD Diameter': 'SDDiam',
   'Box': 'Box',
+  'Week': 'Week',
+  'Timestamp': 'Time'
 };
 
 // Helper to sort columns by priority

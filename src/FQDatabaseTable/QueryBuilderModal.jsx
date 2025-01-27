@@ -37,6 +37,7 @@ const ALL_FIELDS = [
     'sd_diameter',
     'box',
     'week',
+    'timestamp'
   ];
   
 

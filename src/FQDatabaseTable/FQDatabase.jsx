@@ -47,6 +47,7 @@ const FQDatabase = ({ setView }) => {
     'ph',
     'brix',
     'tta',
+    'week'
   ];
   const [selectedFields, setSelectedFields] = useState(() => {
     try {
