@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import ReactDOM from 'react-dom';
 import {
   Box,
   Typography,
@@ -20,9 +19,11 @@ import HomeIcon from '@mui/icons-material/Home';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 
 const AddSamples = ({ setView }) => {
+  // Current year checks
   const currentYear = new Date().getFullYear();
   const lastTwoDigits = currentYear.toString().slice(-2);
 
+  // Initial blank form
   const initialFormData = {
     barcode: '',
     genotype: '',
@@ -52,7 +53,7 @@ const AddSamples = ({ setView }) => {
   const [formData, setFormData] = useState(initialFormData);
   const [genotypeSuggestion, setGenotypeSuggestion] = useState('');
 
-  // For dropdown options
+  // Dropdown options for stage, site, etc.
   const [options, setOptions] = useState({
     stage: [],
     site: [],
@@ -61,27 +62,30 @@ const AddSamples = ({ setView }) => {
     post_harvest: [],
   });
 
-  // Refs
+  // Warnings / checks
+  const [barcodeExistsWarning, setBarcodeExistsWarning] = useState(false);
+  const [yearWarning, setYearWarning] = useState(false);
+  const [barcodeModalOpen, setBarcodeModalOpen] = useState(false);
+
+  // Input refs
   const barcodeRef = useRef(null);
   const genotypeRef = useRef(null);
 
-  // Debounce timer
+  // For debouncing genotype checks
   const typingTimer = useRef(null);
 
-  // --- New state for warnings ---
-  const [barcodeExistsWarning, setBarcodeExistsWarning] = useState(false); // If the barcode is found in DB
-  const [yearWarning, setYearWarning] = useState(false); // If first 2 digits != current year
-  const [barcodeModalOpen, setBarcodeModalOpen] = useState(false); // If user tries to submit < 7 digits
+  // Track the previous barcode so we know when the user has changed it
+  const prevBarcodeRef = useRef('');
 
   useEffect(() => {
-    // Focus the barcode input field on component mount
+    // Focus on the barcode field initially
     if (barcodeRef.current) {
       barcodeRef.current.focus();
     }
   }, []);
 
   useEffect(() => {
-    // Fetch options for select fields
+    // Fetch select dropdown options on mount
     fetch('/api/option_config')
       .then((response) => response.json())
       .then((data) => {
@@ -105,37 +109,40 @@ const AddSamples = ({ setView }) => {
   }, []);
 
   useEffect(() => {
-    // When barcode reaches 7 digits, move focus to genotype and check backend
-    if (formData.barcode.length === 7) {
-      if (genotypeRef.current) {
-        genotypeRef.current.focus();
+    const currentBarcode = formData.barcode;
+    const prevBarcode = prevBarcodeRef.current;
+
+    // If user changes from one 7-digit barcode to a different input (either <7 or a new 7),
+    // we might want to reset the form if it's not the same barcode.
+    if (currentBarcode !== prevBarcode) {
+      // If previously we had a 7-digit code loaded, and now it's no longer that code => reset the form
+      if (prevBarcode.length === 7 && currentBarcode !== prevBarcode) {
+        // Clear if the new code is NOT exactly the same as the old
+        // (i.e. user typed a brand new code or shortened it)
+        setFormData((old) => ({ ...initialFormData, barcode: currentBarcode }));
+        setBarcodeExistsWarning(false);
       }
-      checkBarcodeInBackend(formData.barcode);
+      // Update prevBarcode
+      prevBarcodeRef.current = currentBarcode;
     }
 
-    // Check year warning if at least 2 digits
-    if (
-      formData.barcode.length >= 2 &&
-      formData.barcode.slice(0, 2) !== lastTwoDigits
-    ) {
+    // If we do have 7 digits now, check DB
+    if (currentBarcode.length === 7) {
+      // Move focus to genotype
+      if (genotypeRef.current) genotypeRef.current.focus();
+      // Check in DB
+      checkBarcodeInBackend(currentBarcode);
+    }
+
+    // Year warning if at least 2 digits exist
+    if (currentBarcode.length >= 2 && currentBarcode.slice(0, 2) !== lastTwoDigits) {
       setYearWarning(true);
     } else {
       setYearWarning(false);
     }
   }, [formData.barcode, lastTwoDigits]);
 
-  // Whenever the user changes a form field
-  const handleChange = (event, newValue) => {
-    const name = event.target ? event.target.name : event;
-    const value = newValue !== undefined ? newValue : event.target.value;
-
-    setFormData((prevData) => ({
-      ...prevData,
-      [name]: value,
-    }));
-  };
-
-  // Check backend for existing barcode
+  // Barcode "re-check" logic
   const checkBarcodeInBackend = (barcode) => {
     fetch('/api/check_barcode', {
       method: 'POST',
@@ -145,22 +152,33 @@ const AddSamples = ({ setView }) => {
       .then((response) => response.json())
       .then((data) => {
         if (data.status === 'success') {
-          // If we get success, it means barcode already exists => show warning
+          // If success => it's an existing code
           setBarcodeExistsWarning(true);
-          // Also fill in existing data
+          // Merge existing DB data into our form
           setFormData((prevData) => ({
             ...prevData,
             ...data.data,
           }));
         } else {
-          // If not found or error, no warning
+          // Not found => no warning, keep user input
           setBarcodeExistsWarning(false);
         }
       })
       .catch((error) => console.error('Error checking barcode:', error));
   };
 
-  // Only allow up to 7 numeric digits in the barcode
+  // Called whenever user changes ANY field. newValue is for the Joy UI <Select>.
+  const handleChange = (event, newValue) => {
+    const name = event.target ? event.target.name : event; // e.g. "barcode"
+    const value = newValue !== undefined ? newValue : event.target.value; // e.g. "1234567"
+
+    setFormData((prevData) => ({
+      ...prevData,
+      [name]: value,
+    }));
+  };
+
+  // Barcode must always be numeric up to 7
   const handleBarcodeChange = (event) => {
     const value = event.target.value;
     if (/^\d{0,7}$/.test(value)) {
@@ -168,11 +186,10 @@ const AddSamples = ({ setView }) => {
     }
   };
 
-  // Genotype change with spellcheck
+  // Genotype with spell-check after 2+ letters typed
   const handleGenotypeChange = (event) => {
     handleChange(event);
     const value = event.target.value;
-
     if (value.length > 2) {
       clearTimeout(typingTimer.current);
       typingTimer.current = setTimeout(() => {
@@ -191,8 +208,12 @@ const AddSamples = ({ setView }) => {
       .then((response) => response.json())
       .then((data) => {
         if (data.message === 'Exact match found') {
-          if (isNaN(inputGenotype) && inputGenotype[0] !== inputGenotype[0].toUpperCase()) {
-            const corrected = inputGenotype.charAt(0).toUpperCase() + inputGenotype.slice(1);
+          if (
+            isNaN(inputGenotype) &&
+            inputGenotype[0] !== inputGenotype[0].toUpperCase()
+          ) {
+            const corrected =
+              inputGenotype.charAt(0).toUpperCase() + inputGenotype.slice(1);
             setGenotypeSuggestion(`Did you mean to capitalize genotype ${corrected}`);
           } else {
             setGenotypeSuggestion('');
@@ -208,35 +229,35 @@ const AddSamples = ({ setView }) => {
       });
   };
 
-  // --- Handle Form Submit ---
+  // Submit form
   const handleSubmit = (e) => {
     e.preventDefault();
-
-    // If barcode < 7 digits => show modal & block
+    // If barcode < 7 => show modal
     if (formData.barcode.length < 7) {
       setBarcodeModalOpen(true);
       return;
     }
 
-    // Otherwise, proceed with submission
+    // Clean up empty strings => null
     const cleanedData = { ...formData };
-    Object.keys(cleanedData).forEach((key) => {
+    for (const key in cleanedData) {
       if (cleanedData[key] === '') {
         cleanedData[key] = null;
       }
-    });
+    }
 
     fetch('/api/add_plant_data', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(cleanedData),
     })
-      .then((response) => response.json())
+      .then((res) => res.json())
       .then((data) => {
         if (data.status === 'success') {
           alert('Plant data added successfully!');
           setFormData(initialFormData);
           setBarcodeExistsWarning(false);
+          // Refocus barcode
           if (barcodeRef.current) {
             barcodeRef.current.focus();
           }
@@ -255,6 +276,7 @@ const AddSamples = ({ setView }) => {
     }
   };
 
+  // Render
   return (
     <CssVarsProvider>
       <GlobalStyles
@@ -266,7 +288,6 @@ const AddSamples = ({ setView }) => {
             overflow-y: auto;
             max-height: 90vh;
           }
-          /* Custom scrollbar styles */
           .scrollable-box::-webkit-scrollbar {
             width: 8px;
           }
@@ -310,11 +331,17 @@ const AddSamples = ({ setView }) => {
             maxHeight: '90vh',
           }}
         >
-          {/* NAV Buttons */}
-          <IconButton sx={{ position: 'absolute', top: 10, left: 10 }} onClick={() => setView('mainMenu')}>
+          {/* Nav Icons */}
+          <IconButton
+            sx={{ position: 'absolute', top: 10, left: 10 }}
+            onClick={() => setView('mainMenu')}
+          >
             <HomeIcon />
           </IconButton>
-          <IconButton sx={{ position: 'absolute', top: 10, right: 10 }} onClick={handleReset}>
+          <IconButton
+            sx={{ position: 'absolute', top: 10, right: 10 }}
+            onClick={handleReset}
+          >
             <RestartAltIcon />
           </IconButton>
 
@@ -322,14 +349,15 @@ const AddSamples = ({ setView }) => {
             Define New Samples
           </Typography>
 
+          {/* Form */}
           <form onSubmit={handleSubmit} style={{ width: '100%' }}>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {/* Barcode Field */}
+              {/* Barcode */}
               <FormControl>
                 <FormLabel>Barcode</FormLabel>
                 <Input
                   name="barcode"
-                  value={formData.barcode}
+                  value={formData.barcode || ''}
                   onChange={handleBarcodeChange}
                   required
                   inputProps={{
@@ -340,7 +368,6 @@ const AddSamples = ({ setView }) => {
                   inputRef={barcodeRef}
                   autoFocus
                 />
-                {/* Barcode Warnings */}
                 {barcodeExistsWarning && (
                   <Typography sx={{ color: 'red', fontSize: '0.9rem', mt: 1 }}>
                     WARNING: This Barcode Already Exists in the Database. You can modify it here or
@@ -349,8 +376,8 @@ const AddSamples = ({ setView }) => {
                 )}
                 {yearWarning && formData.barcode.length >= 2 && (
                   <Typography sx={{ color: 'red', fontSize: '0.9rem', mt: 1 }}>
-                    Barcodes should begin with "{lastTwoDigits}" if harvested in {currentYear},
-                    and be 7 digits total. For testing, use the format "0000001" etc and denote "TEST" in genotype.
+                    Barcodes should begin with "{lastTwoDigits}" if harvested in {currentYear}.
+                    Must be 7 digits. For testing, use "0000001" etc and put "TEST" in genotype.
                   </Typography>
                 )}
               </FormControl>
@@ -360,10 +387,10 @@ const AddSamples = ({ setView }) => {
                 <FormLabel>Genotype</FormLabel>
                 <Input
                   name="genotype"
-                  value={formData.genotype}
+                  value={formData.genotype || ''}
                   onChange={handleGenotypeChange}
                   required
-                  inputRef={genotypeRef}
+                  ref={genotypeRef}
                 />
                 {genotypeSuggestion && (
                   <Typography sx={{ color: 'red', fontStyle: 'italic' }}>
@@ -374,7 +401,7 @@ const AddSamples = ({ setView }) => {
                 )}
               </FormControl>
 
-              {/* Stage, Site, Block, Project, Post Harvest */}
+              {/* stage, site, block, project, post_harvest */}
               {['stage', 'site', 'block', 'project', 'post_harvest'].map((field) => (
                 <FormControl key={field}>
                   <FormLabel>
@@ -462,16 +489,13 @@ const AddSamples = ({ setView }) => {
 
       {/* Modal for short barcodes */}
       <Modal open={barcodeModalOpen} onClose={() => setBarcodeModalOpen(false)}>
-        <ModalDialog
-          variant="outlined"
-          sx={{ maxWidth: 500, textAlign: 'center' }}
-        >
+        <ModalDialog variant="outlined" sx={{ maxWidth: 500, textAlign: 'center' }}>
           <Typography level="h5" sx={{ mb: 2 }}>
             Invalid Barcode
           </Typography>
           <Typography sx={{ mb: 2 }}>
             A valid barcode must be 7 digits long and typically begins with "{lastTwoDigits}" if
-            harvested in {currentYear}. 
+            harvested in {currentYear}.
             <br />
             For testing, you can use "0000001" or "0000002" and put "TEST" in the genotype field.
           </Typography>
