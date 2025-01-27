@@ -13,11 +13,16 @@ import {
   FormControl,
   FormLabel,
   GlobalStyles,
+  Modal,
+  ModalDialog,
 } from '@mui/joy';
 import HomeIcon from '@mui/icons-material/Home';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 
 const AddSamples = ({ setView }) => {
+  const currentYear = new Date().getFullYear();
+  const lastTwoDigits = currentYear.toString().slice(-2);
+
   const initialFormData = {
     barcode: '',
     genotype: '',
@@ -46,6 +51,8 @@ const AddSamples = ({ setView }) => {
 
   const [formData, setFormData] = useState(initialFormData);
   const [genotypeSuggestion, setGenotypeSuggestion] = useState('');
+
+  // For dropdown options
   const [options, setOptions] = useState({
     stage: [],
     site: [],
@@ -53,10 +60,18 @@ const AddSamples = ({ setView }) => {
     project: [],
     post_harvest: [],
   });
-  
+
+  // Refs
   const barcodeRef = useRef(null);
   const genotypeRef = useRef(null);
-  const typingTimer = useRef(null); // For debouncing
+
+  // Debounce timer
+  const typingTimer = useRef(null);
+
+  // --- New state for warnings ---
+  const [barcodeExistsWarning, setBarcodeExistsWarning] = useState(false); // If the barcode is found in DB
+  const [yearWarning, setYearWarning] = useState(false); // If first 2 digits != current year
+  const [barcodeModalOpen, setBarcodeModalOpen] = useState(false); // If user tries to submit < 7 digits
 
   useEffect(() => {
     // Focus the barcode input field on component mount
@@ -97,8 +112,19 @@ const AddSamples = ({ setView }) => {
       }
       checkBarcodeInBackend(formData.barcode);
     }
-  }, [formData.barcode]);
 
+    // Check year warning if at least 2 digits
+    if (
+      formData.barcode.length >= 2 &&
+      formData.barcode.slice(0, 2) !== lastTwoDigits
+    ) {
+      setYearWarning(true);
+    } else {
+      setYearWarning(false);
+    }
+  }, [formData.barcode, lastTwoDigits]);
+
+  // Whenever the user changes a form field
   const handleChange = (event, newValue) => {
     const name = event.target ? event.target.name : event;
     const value = newValue !== undefined ? newValue : event.target.value;
@@ -109,6 +135,7 @@ const AddSamples = ({ setView }) => {
     }));
   };
 
+  // Check backend for existing barcode
   const checkBarcodeInBackend = (barcode) => {
     fetch('/api/check_barcode', {
       method: 'POST',
@@ -118,15 +145,22 @@ const AddSamples = ({ setView }) => {
       .then((response) => response.json())
       .then((data) => {
         if (data.status === 'success') {
+          // If we get success, it means barcode already exists => show warning
+          setBarcodeExistsWarning(true);
+          // Also fill in existing data
           setFormData((prevData) => ({
             ...prevData,
             ...data.data,
           }));
+        } else {
+          // If not found or error, no warning
+          setBarcodeExistsWarning(false);
         }
       })
       .catch((error) => console.error('Error checking barcode:', error));
   };
 
+  // Only allow up to 7 numeric digits in the barcode
   const handleBarcodeChange = (event) => {
     const value = event.target.value;
     if (/^\d{0,7}$/.test(value)) {
@@ -134,21 +168,20 @@ const AddSamples = ({ setView }) => {
     }
   };
 
+  // Genotype change with spellcheck
   const handleGenotypeChange = (event) => {
     handleChange(event);
     const value = event.target.value;
 
     if (value.length > 2) {
-      // Clear the debounce timer
       clearTimeout(typingTimer.current);
-      
-      // Set a new timer to wait before calling spell check
       typingTimer.current = setTimeout(() => {
         spellCheckGenotype(value);
-      }, 500); 
+      }, 500);
     }
   };
 
+  // Spellcheck genotype
   const spellCheckGenotype = (inputGenotype) => {
     fetch('/api/spell_check', {
       method: 'POST',
@@ -159,10 +192,10 @@ const AddSamples = ({ setView }) => {
       .then((data) => {
         if (data.message === 'Exact match found') {
           if (isNaN(inputGenotype) && inputGenotype[0] !== inputGenotype[0].toUpperCase()) {
-            const correctedGenotype = inputGenotype.charAt(0).toUpperCase() + inputGenotype.slice(1);
-            setGenotypeSuggestion(`Did you mean to capitalize genotype ${correctedGenotype}`);
+            const corrected = inputGenotype.charAt(0).toUpperCase() + inputGenotype.slice(1);
+            setGenotypeSuggestion(`Did you mean to capitalize genotype ${corrected}`);
           } else {
-            setGenotypeSuggestion(''); 
+            setGenotypeSuggestion('');
           }
         } else if (data.message === 'Partial match found') {
           setGenotypeSuggestion(`Did you mean: ${data.genotype}`);
@@ -173,10 +206,19 @@ const AddSamples = ({ setView }) => {
       .catch((error) => {
         console.error('Error checking genotype:', error);
       });
-  };  
+  };
 
+  // --- Handle Form Submit ---
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    // If barcode < 7 digits => show modal & block
+    if (formData.barcode.length < 7) {
+      setBarcodeModalOpen(true);
+      return;
+    }
+
+    // Otherwise, proceed with submission
     const cleanedData = { ...formData };
     Object.keys(cleanedData).forEach((key) => {
       if (cleanedData[key] === '') {
@@ -194,6 +236,7 @@ const AddSamples = ({ setView }) => {
         if (data.status === 'success') {
           alert('Plant data added successfully!');
           setFormData(initialFormData);
+          setBarcodeExistsWarning(false);
           if (barcodeRef.current) {
             barcodeRef.current.focus();
           }
@@ -203,8 +246,10 @@ const AddSamples = ({ setView }) => {
       });
   };
 
+  // Reset form
   const handleReset = () => {
     setFormData(initialFormData);
+    setBarcodeExistsWarning(false);
     if (barcodeRef.current) {
       barcodeRef.current.focus();
     }
@@ -212,29 +257,31 @@ const AddSamples = ({ setView }) => {
 
   return (
     <CssVarsProvider>
-      <GlobalStyles styles={`
-        body {
-          overflow: hidden; /* Prevent body from scrolling */
-        }
-        .scrollable-box {
-          overflow-y: auto;
-          max-height: 90vh;
-        }
-        /* Custom scrollbar styles */
-        .scrollable-box::-webkit-scrollbar {
-          width: 8px;
-        }
-        .scrollable-box::-webkit-scrollbar-track {
-          background: #f1f1f1;
-        }
-        .scrollable-box::-webkit-scrollbar-thumb {
-          background-color: #888;
-          border-radius: 10px;
-        }
-        .scrollable-box::-webkit-scrollbar-thumb:hover {
-          background: #555;
-        }
-      `} />
+      <GlobalStyles
+        styles={`
+          body {
+            overflow: hidden; /* Prevent body from scrolling */
+          }
+          .scrollable-box {
+            overflow-y: auto;
+            max-height: 90vh;
+          }
+          /* Custom scrollbar styles */
+          .scrollable-box::-webkit-scrollbar {
+            width: 8px;
+          }
+          .scrollable-box::-webkit-scrollbar-track {
+            background: #f1f1f1;
+          }
+          .scrollable-box::-webkit-scrollbar-thumb {
+            background-color: #888;
+            border-radius: 10px;
+          }
+          .scrollable-box::-webkit-scrollbar-thumb:hover {
+            background: #555;
+          }
+        `}
+      />
       <Box
         sx={{
           display: 'flex',
@@ -243,7 +290,6 @@ const AddSamples = ({ setView }) => {
           justifyContent: 'center',
           alignItems: 'center',
           backgroundColor: '#87CEEB',
-          /* Remove overflow: 'hidden' */
         }}
       >
         <Box
@@ -264,6 +310,7 @@ const AddSamples = ({ setView }) => {
             maxHeight: '90vh',
           }}
         >
+          {/* NAV Buttons */}
           <IconButton sx={{ position: 'absolute', top: 10, left: 10 }} onClick={() => setView('mainMenu')}>
             <HomeIcon />
           </IconButton>
@@ -277,6 +324,7 @@ const AddSamples = ({ setView }) => {
 
           <form onSubmit={handleSubmit} style={{ width: '100%' }}>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {/* Barcode Field */}
               <FormControl>
                 <FormLabel>Barcode</FormLabel>
                 <Input
@@ -292,8 +340,22 @@ const AddSamples = ({ setView }) => {
                   inputRef={barcodeRef}
                   autoFocus
                 />
+                {/* Barcode Warnings */}
+                {barcodeExistsWarning && (
+                  <Typography sx={{ color: 'red', fontSize: '0.9rem', mt: 1 }}>
+                    WARNING: This Barcode Already Exists in the Database. You can modify it here or
+                    delete it in the FQ Database Menu.
+                  </Typography>
+                )}
+                {yearWarning && formData.barcode.length >= 2 && (
+                  <Typography sx={{ color: 'red', fontSize: '0.9rem', mt: 1 }}>
+                    Barcodes should begin with "{lastTwoDigits}" if harvested in {currentYear},
+                    and be 7 digits total. For testing, use the format "0000001" etc and denote "TEST" in genotype.
+                  </Typography>
+                )}
               </FormControl>
 
+              {/* Genotype */}
               <FormControl>
                 <FormLabel>Genotype</FormLabel>
                 <Input
@@ -304,7 +366,7 @@ const AddSamples = ({ setView }) => {
                   inputRef={genotypeRef}
                 />
                 {genotypeSuggestion && (
-                  <Typography sx={{ color: 'red', fontStyle: 'italic' }} >
+                  <Typography sx={{ color: 'red', fontStyle: 'italic' }}>
                     {genotypeSuggestion === 'No match found'
                       ? 'Are you sure? Not in Database.'
                       : `${genotypeSuggestion}?`}
@@ -312,18 +374,20 @@ const AddSamples = ({ setView }) => {
                 )}
               </FormControl>
 
-              {/* Define a function to customize Select components */}
+              {/* Stage, Site, Block, Project, Post Harvest */}
               {['stage', 'site', 'block', 'project', 'post_harvest'].map((field) => (
                 <FormControl key={field}>
-                  <FormLabel>{field.charAt(0).toUpperCase() + field.slice(1).replace('_', ' ')}</FormLabel>
+                  <FormLabel>
+                    {field.charAt(0).toUpperCase() + field.slice(1).replace('_', ' ')}
+                  </FormLabel>
                   <Select
                     name={field}
-                    value={formData[field]}
+                    value={formData[field] || ''}
                     onChange={(_, newValue) => handleChange(field, newValue)}
                     required={['stage', 'site'].includes(field)}
                     slotProps={{
                       popper: {
-                        disablePortal: false, // Render popper in a portal
+                        disablePortal: false,
                       },
                       listbox: {
                         sx: {
@@ -333,7 +397,7 @@ const AddSamples = ({ setView }) => {
                       },
                     }}
                   >
-                    {options[field].map((optionValue, idx) => (
+                    {(options[field] || []).map((optionValue, idx) => (
                       <Option key={idx} value={optionValue}>
                         {optionValue}
                       </Option>
@@ -346,50 +410,76 @@ const AddSamples = ({ setView }) => {
                 <FormLabel>Bush Plant Number</FormLabel>
                 <Input
                   name="bush_plant_number"
-                  value={formData.bush_plant_number}
+                  value={formData.bush_plant_number || ''}
                   onChange={handleChange}
                 />
               </FormControl>
+
               <FormControl>
                 <FormLabel>Mass</FormLabel>
                 <Input
                   name="mass"
-                  value={formData.mass}
+                  value={formData.mass || ''}
                   onChange={handleChange}
                 />
               </FormControl>
+
               <FormControl>
                 <FormLabel>Number of Berries</FormLabel>
                 <Input
                   name="number_of_berries"
-                  value={formData.number_of_berries}
+                  value={formData.number_of_berries || ''}
                   onChange={handleChange}
                 />
               </FormControl>
+
               <FormControl>
                 <FormLabel>X Berry Mass</FormLabel>
                 <Input
                   name="x_berry_mass"
-                  value={formData.x_berry_mass}
+                  value={formData.x_berry_mass || ''}
                   onChange={handleChange}
                 />
               </FormControl>
+
               <FormControl>
                 <FormLabel>Notes</FormLabel>
                 <Textarea
                   name="notes"
-                  value={formData.notes}
+                  value={formData.notes || ''}
                   onChange={handleChange}
                   minRows={3}
                 />
               </FormControl>
             </Box>
+
             <Button type="submit" sx={{ mt: 3 }}>
               Submit
             </Button>
           </form>
         </Box>
       </Box>
+
+      {/* Modal for short barcodes */}
+      <Modal open={barcodeModalOpen} onClose={() => setBarcodeModalOpen(false)}>
+        <ModalDialog
+          variant="outlined"
+          sx={{ maxWidth: 500, textAlign: 'center' }}
+        >
+          <Typography level="h5" sx={{ mb: 2 }}>
+            Invalid Barcode
+          </Typography>
+          <Typography sx={{ mb: 2 }}>
+            A valid barcode must be 7 digits long and typically begins with "{lastTwoDigits}" if
+            harvested in {currentYear}. 
+            <br />
+            For testing, you can use "0000001" or "0000002" and put "TEST" in the genotype field.
+          </Typography>
+          <Button variant="solid" onClick={() => setBarcodeModalOpen(false)}>
+            OK
+          </Button>
+        </ModalDialog>
+      </Modal>
     </CssVarsProvider>
   );
 };
