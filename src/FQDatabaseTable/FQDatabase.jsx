@@ -10,6 +10,8 @@ import {
   FormLabel,
   Table,
   Tooltip,
+  Modal,
+  ModalDialog
 } from '@mui/joy';
 import HomeIcon from '@mui/icons-material/Home';
 import axios from 'axios';
@@ -49,6 +51,12 @@ const FQDatabase = ({ setView }) => {
   // For the "Select Columns" modal
   const [columnModalOpen, setColumnModalOpen] = useState(false);
 
+  // --- Delete Mode States ---
+  const [deleteMode, setDeleteMode] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteCandidate, setDeleteCandidate] = useState(null); // The row the user wants to delete
+  const [deleteError, setDeleteError] = useState('');
+
   // Default selected columns
   const defaultSelectedFields = [
     'barcode',
@@ -64,10 +72,7 @@ const FQDatabase = ({ setView }) => {
     'tta',
   ];
 
-  /**
-   * Initialize selected fields from localStorage if available,
-   * otherwise use the default list.
-   */
+  // Initialize selected fields from localStorage if available
   const [selectedFields, setSelectedFields] = useState(() => {
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -149,9 +154,20 @@ const FQDatabase = ({ setView }) => {
     }
   };
 
+  /**
+   * Handles clicking a row.
+   * If in deleteMode => open delete confirm modal
+   * Otherwise => open editing modal
+   */
   const handleRowClick = (plant) => {
-    setSelectedPlant(plant);
-    setEditDialogOpen(true);
+    if (deleteMode) {
+      setDeleteCandidate(plant);
+      setDeleteError('');
+      setDeleteDialogOpen(true);
+    } else {
+      setSelectedPlant(plant);
+      setEditDialogOpen(true);
+    }
   };
 
   const handleDialogClose = () => {
@@ -185,6 +201,35 @@ const FQDatabase = ({ setView }) => {
     ) {
       setCurrentPage((prevPage) => prevPage + 1);
     }
+  };
+
+  // --- Deletion Logic ---
+  const handleDeleteConfirm = async () => {
+    if (!deleteCandidate?.barcode) return;
+    try {
+      setDeleteError('');
+      // Make the DELETE request
+      await axios.delete('/api/delete_plant_data', {
+        data: { barcode: deleteCandidate.barcode }
+      });
+
+      // Remove from local state
+      setPlantData((prevData) =>
+        prevData.filter((p) => p.barcode !== deleteCandidate.barcode)
+      );
+
+      // Close dialog
+      setDeleteDialogOpen(false);
+      setDeleteCandidate(null);
+    } catch (err) {
+      console.error('Delete error:', err);
+      setDeleteError(err?.response?.data?.message || 'Error deleting plant data.');
+    }
+  };
+
+  const handleCloseDeleteDialog = () => {
+    setDeleteCandidate(null);
+    setDeleteDialogOpen(false);
   };
 
   // Render header label with abbreviations for non-important fields
@@ -271,10 +316,17 @@ const FQDatabase = ({ setView }) => {
             FQ Database
           </Typography>
 
-          {/* "Select Columns" Button */}
-          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
+          {/* Buttons row */}
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1, gap: 1 }}>
             <Button variant="soft" onClick={handleOpenColumnModal}>
               Select Columns To Display
+            </Button>
+            <Button
+              variant={deleteMode ? 'solid' : 'soft'}
+              color={deleteMode ? 'danger' : 'neutral'}
+              onClick={() => setDeleteMode((prev) => !prev)}
+            >
+              {deleteMode ? 'Cancel Delete Mode' : 'Delete Mode'}
             </Button>
           </Box>
 
@@ -340,8 +392,9 @@ const FQDatabase = ({ setView }) => {
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                 },
+                // Change row hover color based on deleteMode
                 '& tbody tr:hover': {
-                  backgroundColor: theme.palette.background.level2,
+                  backgroundColor: deleteMode ? '#ffcccc' : theme.palette.background.level2,
                 },
                 '& th.important-column, & td.important-column': {
                   whiteSpace: 'normal',
@@ -400,7 +453,7 @@ const FQDatabase = ({ setView }) => {
             </Table>
           </Box>
 
-          {/* Edit Dialog */}
+          {/* Edit Dialog (existing) */}
           <EditPlantDataDialog
             open={editDialogOpen}
             onClose={handleDialogClose}
@@ -410,7 +463,7 @@ const FQDatabase = ({ setView }) => {
             handleSaveChanges={handleSaveChanges}
           />
 
-          {/* Column Selection Modal */}
+          {/* Column Selection Modal (existing) */}
           <ColumnSelectionModal
             open={columnModalOpen}
             onClose={handleCloseColumnModal}
@@ -421,6 +474,40 @@ const FQDatabase = ({ setView }) => {
             MIN_COLUMNS={MIN_COLUMNS}
             MAX_COLUMNS={MAX_COLUMNS}
           />
+
+          {/* Delete Confirmation Modal */}
+          <Modal open={deleteDialogOpen} onClose={handleCloseDeleteDialog}>
+            <ModalDialog
+              variant="outlined"
+              color="danger"
+              sx={{ maxWidth: 400, textAlign: 'center' }}
+            >
+              <Typography level="h5" sx={{ mb: 1 }}>
+                Confirm Deletion
+              </Typography>
+              {deleteCandidate && (
+                <Typography sx={{ mb: 2 }}>
+                  Are you sure you want to delete the row with:
+                  <br />
+                  <strong>Barcode:</strong> {deleteCandidate.barcode} <br />
+                  <strong>Genotype:</strong> {deleteCandidate.genotype}
+                </Typography>
+              )}
+              {deleteError && (
+                <Typography color="danger" sx={{ mb: 1 }}>
+                  {deleteError}
+                </Typography>
+              )}
+              <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
+                <Button variant="soft" onClick={handleCloseDeleteDialog}>
+                  Cancel
+                </Button>
+                <Button variant="solid" color="danger" onClick={handleDeleteConfirm}>
+                  Delete
+                </Button>
+              </Box>
+            </ModalDialog>
+          </Modal>
         </Box>
       </Box>
     </CssVarsProvider>
