@@ -289,7 +289,7 @@ const FQDatabase = ({ setView }) => {
               Advanced Search
             </Button>
             <Button variant="soft" onClick={handleOpenColumnModal}>
-              Select Columns
+              Choose Columns Displayed 
             </Button>
             <Button
               variant={deleteMode ? 'solid' : 'soft'}
