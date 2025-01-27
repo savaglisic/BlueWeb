@@ -1,5 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react'; 
-import { Box, Typography, Input, IconButton, CssVarsProvider, Grid, Select, Option, Button } from '@mui/joy';
+import {
+  Box,
+  Typography,
+  Input,
+  IconButton,
+  CssVarsProvider,
+  Grid,
+  Select,
+  Option,
+  Button,
+} from '@mui/joy';
 import HomeIcon from '@mui/icons-material/Home';
 import axios from 'axios';
 
@@ -8,8 +18,14 @@ const FQLab = ({ setView }) => {
   const [plantData, setPlantData] = useState(null);
   const [error, setError] = useState('');
   const barcodeInputRef = useRef(null);
+
+  // The currently selected property ("ph", "brix", or "tta").
   const [selectedProperty, setSelectedProperty] = useState('');
+
+  // The input value for the selected property (e.g. new pH number).
   const [inputValue, setInputValue] = useState('');
+
+  // Option configurations & ranges from /api/option_config
   const [optionConfigs, setOptionConfigs] = useState({});
   const [rangeError, setRangeError] = useState('');
   const [override, setOverride] = useState(false);
@@ -46,6 +62,7 @@ const FQLab = ({ setView }) => {
     }
   }, [barcode]);
 
+  // Whenever plantData or selectedProperty changes, fill inputValue with the existing data
   useEffect(() => {
     if (plantData && selectedProperty) {
       setInputValue(plantData[selectedProperty] || '');
@@ -75,11 +92,12 @@ const FQLab = ({ setView }) => {
       });
   };
 
+  // Removed "setSelectedProperty('')" to keep the selected property after Update
   const resetData = () => {
     setPlantData(null);
     setError('');
     setInputValue('');
-    setSelectedProperty('');
+    // setSelectedProperty('');  <-- Removed
     setRangeError('');
     setOverride(false);
   };
@@ -96,7 +114,6 @@ const FQLab = ({ setView }) => {
       setRangeError(`Value is out of expected range (${getExpectedRange()}).`);
       return;
     }
-
     const dataToSend = {
       barcode,
       [selectedProperty]: inputValue,
@@ -107,6 +124,7 @@ const FQLab = ({ setView }) => {
       .then((response) => {
         if (response.data.status === 'success') {
           alert(response.data.message);
+          // We reset data but keep the selectedProperty
           resetData();
           setBarcode('');
           if (barcodeInputRef.current) {
@@ -188,9 +206,14 @@ const FQLab = ({ setView }) => {
             maxHeight: '90vh',
           }}
         >
-          <IconButton sx={{ position: 'absolute', top: 10, left: 10 }} onClick={() => setView('mainMenu')}>
+          <IconButton
+            sx={{ position: 'absolute', top: 10, left: 10 }}
+            onClick={() => setView('mainMenu')}
+          >
             <HomeIcon />
           </IconButton>
+
+          {/* Keep the selectedProperty in state. No reset in resetData. */}
           <Select
             value={selectedProperty}
             onChange={(e, newValue) => setSelectedProperty(newValue)}
@@ -201,11 +224,19 @@ const FQLab = ({ setView }) => {
             <Option value="brix">Brix</Option>
             <Option value="tta">TTA</Option>
           </Select>
+
           <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'black' }}>
             Fruit Quality
           </Typography>
 
-          <Box sx={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <Box
+            sx={{
+              width: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+            }}
+          >
             <Input
               ref={barcodeInputRef}
               value={barcode}
@@ -222,7 +253,15 @@ const FQLab = ({ setView }) => {
           </Box>
 
           {plantData && selectedProperty && (
-            <Box sx={{ mt: 2, width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <Box
+              sx={{
+                mt: 2,
+                width: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+              }}
+            >
               <Typography variant="body1" sx={{ marginBottom: 1 }}>
                 Expected Range for {selectedProperty.toUpperCase()}: {getExpectedRange() || 'N/A'}
               </Typography>
