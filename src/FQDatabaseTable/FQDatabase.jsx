@@ -292,6 +292,12 @@ const FQDatabase = ({ setView }) => {
               Choose Columns Displayed 
             </Button>
             <Button
+              variant="soft"
+              onClick={() => window.location.href = '/api/download_plant_data_csv'}
+            >
+              Download Excel
+            </Button>
+            <Button
               variant={deleteMode ? 'solid' : 'soft'}
               color={deleteMode ? 'danger' : 'neutral'}
               onClick={() => setDeleteMode((prev) => !prev)}
