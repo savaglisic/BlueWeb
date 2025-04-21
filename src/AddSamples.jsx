@@ -17,13 +17,13 @@ import {
 } from '@mui/joy';
 import HomeIcon from '@mui/icons-material/Home';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
+import CameraAltIcon from '@mui/icons-material/CameraAlt';
+import BarcodeScannerComponent from 'react-qr-barcode-scanner';
 
 const AddSamples = ({ setView }) => {
-  // Current year checks
   const currentYear = new Date().getFullYear();
   const lastTwoDigits = currentYear.toString().slice(-2);
 
-  // Initial blank form
   const initialFormData = {
     barcode: '',
     genotype: '',
@@ -52,8 +52,6 @@ const AddSamples = ({ setView }) => {
 
   const [formData, setFormData] = useState(initialFormData);
   const [genotypeSuggestion, setGenotypeSuggestion] = useState('');
-
-  // Dropdown options for stage, site, etc.
   const [options, setOptions] = useState({
     stage: [],
     site: [],
@@ -61,160 +59,117 @@ const AddSamples = ({ setView }) => {
     project: [],
     post_harvest: [],
   });
-
-  // Warnings / checks
   const [barcodeExistsWarning, setBarcodeExistsWarning] = useState(false);
   const [yearWarning, setYearWarning] = useState(false);
   const [barcodeModalOpen, setBarcodeModalOpen] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
 
-  // Input refs
   const barcodeRef = useRef(null);
   const genotypeRef = useRef(null);
-
-  // For debouncing genotype checks
   const typingTimer = useRef(null);
-
-  // Track the previous barcode so we know when the user has changed it
   const prevBarcodeRef = useRef('');
 
   useEffect(() => {
-    // Focus on the barcode field initially
-    if (barcodeRef.current) {
-      barcodeRef.current.focus();
-    }
+    if (barcodeRef.current) barcodeRef.current.focus();
   }, []);
 
   useEffect(() => {
-    // Fetch select dropdown options on mount
     fetch('/api/option_config')
-      .then((response) => response.json())
+      .then((res) => res.json())
       .then((data) => {
-        const groupedOptions = data.options.reduce((acc, option) => {
-          if (!acc[option.option_type]) {
-            acc[option.option_type] = [];
-          }
-          acc[option.option_type].push(option.option_text);
+        const grouped = data.options.reduce((acc, o) => {
+          acc[o.option_type] = acc[o.option_type] || [];
+          acc[o.option_type].push(o.option_text);
           return acc;
         }, {});
-
         setOptions({
-          stage: groupedOptions.stage || [],
-          site: groupedOptions.site || [],
-          block: groupedOptions.block || [],
-          project: groupedOptions.project || [],
-          post_harvest: groupedOptions.post_harvest || [],
+          stage: grouped.stage || [],
+          site: grouped.site || [],
+          block: grouped.block || [],
+          project: grouped.project || [],
+          post_harvest: grouped.post_harvest || [],
         });
       })
-      .catch((error) => console.error('Error fetching options:', error));
+      .catch(console.error);
   }, []);
 
   useEffect(() => {
-    const currentBarcode = formData.barcode;
-    const prevBarcode = prevBarcodeRef.current;
+    const cur = formData.barcode;
+    const prev = prevBarcodeRef.current;
 
-    // If user changes from one 7-digit barcode to a different input (either <7 or a new 7),
-    // we might want to reset the form if it's not the same barcode.
-    if (currentBarcode !== prevBarcode) {
-      // If previously we had a 7-digit code loaded, and now it's no longer that code => reset the form
-      if (prevBarcode.length === 7 && currentBarcode !== prevBarcode) {
-        // Clear if the new code is NOT exactly the same as the old
-        // (i.e. user typed a brand new code or shortened it)
-        setFormData((old) => ({ ...initialFormData, barcode: currentBarcode }));
+    if (cur !== prev) {
+      if (prev.length === 7 && cur !== prev) {
+        setFormData((_) => ({ ...initialFormData, barcode: cur }));
         setBarcodeExistsWarning(false);
       }
-      // Update prevBarcode
-      prevBarcodeRef.current = currentBarcode;
+      prevBarcodeRef.current = cur;
     }
 
-    // If we do have 7 digits now, check DB
-    if (currentBarcode.length === 7) {
-      // Move focus to genotype
+    if (cur.length === 7) {
       if (genotypeRef.current) genotypeRef.current.focus();
-      // Check in DB
-      checkBarcodeInBackend(currentBarcode);
+      checkBarcodeInBackend(cur);
     }
 
-    // Year warning if at least 2 digits exist
-    if (currentBarcode.length >= 2 && currentBarcode.slice(0, 2) !== lastTwoDigits) {
-      setYearWarning(true);
-    } else {
-      setYearWarning(false);
-    }
+    setYearWarning(cur.length >= 2 && cur.slice(0, 2) !== lastTwoDigits);
   }, [formData.barcode, lastTwoDigits]);
 
-  // Barcode "re-check" logic
   const checkBarcodeInBackend = (barcode) => {
     fetch('/api/check_barcode', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ barcode }),
     })
-      .then((response) => response.json())
+      .then((r) => r.json())
       .then((data) => {
         if (data.status === 'success') {
-          // If success => it's an existing code
           setBarcodeExistsWarning(true);
-          // Merge existing DB data into our form
-          setFormData((prevData) => ({
-            ...prevData,
-            ...data.data,
-          }));
+          setFormData((p) => ({ ...p, ...data.data }));
         } else {
-          // Not found => no warning, keep user input
           setBarcodeExistsWarning(false);
         }
       })
-      .catch((error) => console.error('Error checking barcode:', error));
+      .catch(console.error);
   };
 
-  // Called whenever user changes ANY field. newValue is for the Joy UI <Select>.
   const handleChange = (event, newValue) => {
-    const name = event.target ? event.target.name : event; // e.g. "barcode"
-    const value = newValue !== undefined ? newValue : event.target.value; // e.g. "1234567"
-
-    setFormData((prevData) => ({
-      ...prevData,
-      [name]: value,
-    }));
+    const name = event.target ? event.target.name : event;
+    const value = newValue !== undefined ? newValue : event.target.value;
+    setFormData((p) => ({ ...p, [name]: value }));
   };
 
-  // Barcode must always be numeric up to 7
-  const handleBarcodeChange = (event) => {
-    const value = event.target.value;
-    if (/^\d{0,7}$/.test(value)) {
-      handleChange(event);
-    }
+  const handleBarcodeChange = (e) => {
+    const v = e.target.value;
+    if (/^\d{0,7}$/.test(v)) handleChange(e);
   };
 
-  // Genotype with spell-check after 2+ letters typed
-  const handleGenotypeChange = (event) => {
-    handleChange(event);
-    const value = event.target.value;
-    if (value.length > 2) {
+  const handleGenotypeChange = (e) => {
+    handleChange(e);
+    const v = e.target.value;
+    if (v.length > 2) {
       clearTimeout(typingTimer.current);
-      typingTimer.current = setTimeout(() => {
-        spellCheckGenotype(value);
-      }, 500);
+      typingTimer.current = setTimeout(() => spellCheckGenotype(v), 500);
     }
   };
 
-  // Spellcheck genotype
   const spellCheckGenotype = (inputGenotype) => {
     fetch('/api/spell_check', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ input_string: inputGenotype }),
     })
-      .then((response) => response.json())
+      .then((r) => r.json())
       .then((data) => {
         if (data.message === 'Exact match found') {
           if (
             isNaN(inputGenotype) &&
             inputGenotype[0] !== inputGenotype[0].toUpperCase()
           ) {
-            const corrected =
-              inputGenotype.charAt(0).toUpperCase() + inputGenotype.slice(1);
-            setGenotypeSuggestion(`Did you mean to capitalize genotype ${corrected}`);
+            const corr =
+              inputGenotype.charAt(0).toUpperCase() +
+              inputGenotype.slice(1);
+            setGenotypeSuggestion(
+              `Did you mean to capitalize genotype ${corr}`
+            );
           } else {
             setGenotypeSuggestion('');
           }
@@ -224,83 +179,59 @@ const AddSamples = ({ setView }) => {
           setGenotypeSuggestion('No match found');
         }
       })
-      .catch((error) => {
-        console.error('Error checking genotype:', error);
-      });
+      .catch(console.error);
   };
 
-  // Submit form
   const handleSubmit = (e) => {
     e.preventDefault();
-    // If barcode < 7 => show modal
     if (formData.barcode.length < 7) {
       setBarcodeModalOpen(true);
       return;
     }
-
-    // Clean up empty strings => null
-    const cleanedData = { ...formData };
-    for (const key in cleanedData) {
-      if (cleanedData[key] === '') {
-        cleanedData[key] = null;
-      }
-    }
-
+    const cleaned = { ...formData };
+    Object.keys(cleaned).forEach((k) => {
+      if (cleaned[k] === '') cleaned[k] = null;
+    });
     fetch('/api/add_plant_data', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(cleanedData),
+      body: JSON.stringify(cleaned),
     })
-      .then((res) => res.json())
+      .then((r) => r.json())
       .then((data) => {
         if (data.status === 'success') {
           alert('Plant data added successfully!');
           setFormData(initialFormData);
           setBarcodeExistsWarning(false);
-          // Refocus barcode
-          if (barcodeRef.current) {
-            barcodeRef.current.focus();
-          }
+          barcodeRef.current?.focus();
         } else {
           alert('Error: ' + data.message);
         }
       });
   };
 
-  // Reset form
   const handleReset = () => {
     setFormData(initialFormData);
     setBarcodeExistsWarning(false);
-    if (barcodeRef.current) {
-      barcodeRef.current.focus();
+    barcodeRef.current?.focus();
+  };
+
+  const handleScan = (err, result) => {
+    if (result) {
+      setFormData((p) => ({ ...p, barcode: result.text }));
+      setScannerOpen(false);
     }
   };
 
-  // Render
   return (
     <CssVarsProvider>
       <GlobalStyles
         styles={`
-          body {
-            overflow: hidden; /* Prevent body from scrolling */
-          }
-          .scrollable-box {
-            overflow-y: auto;
-            max-height: 90vh;
-          }
-          .scrollable-box::-webkit-scrollbar {
-            width: 8px;
-          }
-          .scrollable-box::-webkit-scrollbar-track {
-            background: #f1f1f1;
-          }
-          .scrollable-box::-webkit-scrollbar-thumb {
-            background-color: #888;
-            border-radius: 10px;
-          }
-          .scrollable-box::-webkit-scrollbar-thumb:hover {
-            background: #555;
-          }
+          body { overflow: hidden; }
+          .scrollable-box { overflow-y: auto; max-height: 90vh; }
+          .scrollable-box::-webkit-scrollbar { width: 8px; }
+          .scrollable-box::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
+          .scrollable-box::-webkit-scrollbar-thumb:hover { background: #555; }
         `}
       />
       <Box
@@ -320,18 +251,14 @@ const AddSamples = ({ setView }) => {
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',
-            padding: 3,
+            p: 3,
             borderRadius: 'md',
-            backgroundColor: '#ffffff',
+            bgcolor: '#fff',
             width: '100%',
-            maxWidth: '600px',
-            boxSizing: 'border-box',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-            overflowY: 'auto',
-            maxHeight: '90vh',
+            maxWidth: 600,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
           }}
         >
-          {/* Nav Icons */}
           <IconButton
             sx={{ position: 'absolute', top: 10, left: 10 }}
             onClick={() => setView('mainMenu')}
@@ -349,45 +276,40 @@ const AddSamples = ({ setView }) => {
             Define New Samples
           </Typography>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} style={{ width: '100%' }}>
+          <form onSubmit={handleSubmit} style={{ width: '100%', marginTop: 16 }}>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-              {/* Barcode */}
               <FormControl>
                 <FormLabel>Barcode</FormLabel>
                 <Input
                   name="barcode"
-                  value={formData.barcode || ''}
+                  value={formData.barcode}
                   onChange={handleBarcodeChange}
                   required
-                  inputProps={{
-                    maxLength: 7,
-                    inputMode: 'numeric',
-                    pattern: '[0-9]*',
-                  }}
+                  inputProps={{ maxLength: 7, inputMode: 'numeric', pattern: '[0-9]*' }}
                   inputRef={barcodeRef}
-                  autoFocus
+                  endDecorator={
+                    <IconButton onClick={() => setScannerOpen(true)}>
+                      <CameraAltIcon />
+                    </IconButton>
+                  }
                 />
                 {barcodeExistsWarning && (
                   <Typography sx={{ color: 'red', fontSize: '0.9rem', mt: 1 }}>
-                    WARNING: This Barcode Already Exists in the Database. You can modify it here or
-                    delete it in the FQ Database Menu.
+                    WARNING: This Barcode Already Exists in the Database…
                   </Typography>
                 )}
-                {yearWarning && formData.barcode.length >= 2 && (
+                {yearWarning && (
                   <Typography sx={{ color: 'red', fontSize: '0.9rem', mt: 1 }}>
-                    Barcodes should begin with "{lastTwoDigits}" if harvested in {currentYear}.
-                    Must be 7 digits. For testing, use "0000001" etc and put "TEST" in genotype.
+                    Barcodes should begin with "{lastTwoDigits}" if harvested in {currentYear}.…
                   </Typography>
                 )}
               </FormControl>
 
-              {/* Genotype */}
               <FormControl>
                 <FormLabel>Genotype</FormLabel>
                 <Input
                   name="genotype"
-                  value={formData.genotype || ''}
+                  value={formData.genotype}
                   onChange={handleGenotypeChange}
                   required
                   ref={genotypeRef}
@@ -401,7 +323,6 @@ const AddSamples = ({ setView }) => {
                 )}
               </FormControl>
 
-              {/* stage, site, block, project, post_harvest */}
               {['stage', 'site', 'block', 'project', 'post_harvest'].map((field) => (
                 <FormControl key={field}>
                   <FormLabel>
@@ -410,23 +331,16 @@ const AddSamples = ({ setView }) => {
                   <Select
                     name={field}
                     value={formData[field] || ''}
-                    onChange={(_, newValue) => handleChange(field, newValue)}
+                    onChange={(_, v) => handleChange(field, v)}
                     required={['stage', 'site'].includes(field)}
                     slotProps={{
-                      popper: {
-                        disablePortal: false,
-                      },
-                      listbox: {
-                        sx: {
-                          position: 'absolute',
-                          zIndex: 1300,
-                        },
-                      },
+                      popper: { disablePortal: false },
+                      listbox: { sx: { position: 'absolute', zIndex: 1300 } },
                     }}
                   >
-                    {(options[field] || []).map((optionValue, idx) => (
-                      <Option key={idx} value={optionValue}>
-                        {optionValue}
+                    {options[field].map((opt, i) => (
+                      <Option key={i} value={opt}>
+                        {opt}
                       </Option>
                     ))}
                   </Select>
@@ -437,46 +351,29 @@ const AddSamples = ({ setView }) => {
                 <FormLabel>Bush Plant Number</FormLabel>
                 <Input
                   name="bush_plant_number"
-                  value={formData.bush_plant_number || ''}
+                  value={formData.bush_plant_number}
                   onChange={handleChange}
                 />
               </FormControl>
 
               <FormControl>
                 <FormLabel>Mass</FormLabel>
-                <Input
-                  name="mass"
-                  value={formData.mass || ''}
-                  onChange={handleChange}
-                />
+                <Input name="mass" value={formData.mass} onChange={handleChange} />
               </FormControl>
 
               <FormControl>
                 <FormLabel>Number of Berries</FormLabel>
-                <Input
-                  name="number_of_berries"
-                  value={formData.number_of_berries || ''}
-                  onChange={handleChange}
-                />
+                <Input name="number_of_berries" value={formData.number_of_berries} onChange={handleChange} />
               </FormControl>
 
               <FormControl>
                 <FormLabel>X Berry Mass</FormLabel>
-                <Input
-                  name="x_berry_mass"
-                  value={formData.x_berry_mass || ''}
-                  onChange={handleChange}
-                />
+                <Input name="x_berry_mass" value={formData.x_berry_mass} onChange={handleChange} />
               </FormControl>
 
               <FormControl>
                 <FormLabel>Notes</FormLabel>
-                <Textarea
-                  name="notes"
-                  value={formData.notes || ''}
-                  onChange={handleChange}
-                  minRows={3}
-                />
+                <Textarea name="notes" value={formData.notes} onChange={handleChange} minRows={3} />
               </FormControl>
             </Box>
 
@@ -487,20 +384,32 @@ const AddSamples = ({ setView }) => {
         </Box>
       </Box>
 
-      {/* Modal for short barcodes */}
+      {/* Modal if barcode too short */}
       <Modal open={barcodeModalOpen} onClose={() => setBarcodeModalOpen(false)}>
         <ModalDialog variant="outlined" sx={{ maxWidth: 500, textAlign: 'center' }}>
           <Typography level="h5" sx={{ mb: 2 }}>
             Invalid Barcode
           </Typography>
           <Typography sx={{ mb: 2 }}>
-            A valid barcode must be 7 digits long and typically begins with "{lastTwoDigits}" if
-            harvested in {currentYear}.
-            <br />
-            For testing, you can use "0000001" or "0000002" and put "TEST" in the genotype field.
+            A valid barcode must be 7 digits long and typically begins with "{lastTwoDigits}" for {currentYear}.…
           </Typography>
-          <Button variant="solid" onClick={() => setBarcodeModalOpen(false)}>
-            OK
+          <Button onClick={() => setBarcodeModalOpen(false)}>OK</Button>
+        </ModalDialog>
+      </Modal>
+
+      {/* Scanner Modal */}
+      <Modal open={scannerOpen} onClose={() => setScannerOpen(false)}>
+        <ModalDialog variant="outlined" sx={{ maxWidth: 460, textAlign: 'center' }}>
+          <Typography level="h6" sx={{ mb: 1 }}>
+            Scan Barcode
+          </Typography>
+          <BarcodeScannerComponent
+            width={400}
+            height={300}
+            onUpdate={(err, result) => handleScan(err, result)}
+          />
+          <Button sx={{ mt: 2 }} onClick={() => setScannerOpen(false)}>
+            Cancel
           </Button>
         </ModalDialog>
       </Modal>
