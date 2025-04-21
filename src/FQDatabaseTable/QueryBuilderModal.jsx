@@ -94,11 +94,11 @@ function QueryBuilderModal({ open, onClose, onApply, initialFilters = [] }) {
     <Modal open={open} onClose={onClose}>
       <ModalDialog
         sx={{
-          width: '90%',
-          maxWidth: 500,
-          maxHeight: '80vh',
+          width: '100%',
+          maxWidth: 600,
+          maxHeight: '90vh',
           overflowY: 'auto',
-          p: 3,
+          p: 2,
         }}
       >
         <Typography level="h5" sx={{ mb: 2 }}>
