@@ -1,7 +1,7 @@
 // columns.js
 
 // Which columns must always be visible
-export const importantFields = ['barcode', 'genotype'];
+export const importantFields = ['barcode', 'genotype', 'fruitfirm_timestamp'];
 
 // All possible columns
 export const columns = [
@@ -10,6 +10,7 @@ export const columns = [
   { field: 'stage', label: 'Stage', priority: 3 },
   { field: 'site', label: 'Site', priority: 4 },
   { field: 'block', label: 'Block', priority: 5 },
+  { field: 'fruitfirm_timestamp', label: 'FirmTime', priority: 25 },
   { field: 'project', label: 'Project', priority: 6 },
   { field: 'post_harvest', label: 'Post Harvest', priority: 7 },
   { field: 'bush_plant_number', label: 'Bush Plant Number', priority: 8 },
@@ -50,7 +51,8 @@ export const abbreviations = {
   'SD Diameter': 'SDDiam',
   'Box': 'Box',
   'Week': 'Week',
-  'Timestamp': 'Time'
+  'Timestamp': 'Time',
+  'Recieved In Lab': 'In Lab'
 };
 
 // Helper to sort columns by priority

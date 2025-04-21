@@ -1,3 +1,4 @@
+// FQDatabase.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Box,
@@ -21,6 +22,19 @@ import EditPlantDataDialog from './EditPlantDialog';
 import QueryBuilderModal from './QueryBuilderModal';
 
 const FQDatabase = ({ setView }) => {
+  // --- Helpers ---
+  const formatTimestamp = (ts) => {
+    if (!ts) return '';
+    const d = new Date(ts);
+    const m = d.getMonth() + 1;
+    const day = d.getDate();
+    let h = d.getHours();
+    const min = d.getMinutes().toString().padStart(2, '0');
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    return `${m}-${day} ${h}:${min}${ampm}`;
+  };
+
   // --- Constants ---
   const MIN_COLUMNS = 2;
   const MAX_COLUMNS = 22;
@@ -48,13 +62,13 @@ const FQDatabase = ({ setView }) => {
     'brix',
     'tta',
     'week',
+    'fruitfirm_timestamp',    // ensure it’s selected by default
   ];
   const [selectedFields, setSelectedFields] = useState(() => {
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
       return saved ? JSON.parse(saved) : defaultSelectedFields;
-    } catch (error) {
-      console.error('Error parsing selected fields from localStorage:', error);
+    } catch {
       return defaultSelectedFields;
     }
   });
@@ -71,7 +85,6 @@ const FQDatabase = ({ setView }) => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
   // --- Advanced Search State ---
-  // e.g. [{ field: 'genotype', operator: 'includes', value: 'Sweet' }, ...]
   const [filters, setFilters] = useState([]);
   const [queryBuilderOpen, setQueryBuilderOpen] = useState(false);
 
@@ -81,25 +94,21 @@ const FQDatabase = ({ setView }) => {
 
   // Sort columns by priority
   const sortedColumns = getSortedColumns();
-  // Visible columns
-  const visibleColumns = sortedColumns.filter((col) =>
+  const visibleColumns = sortedColumns.filter(col =>
     selectedFields.includes(col.field)
   );
 
-  // --- Effects ---
-
-  // Persist selected columns to localStorage
+  // Persist selected columns
   useEffect(() => {
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(selectedFields));
   }, [selectedFields]);
 
-  // Re-fetch whenever `filters` or `currentPage` changes
+  // Fetch on filters or page change
   useEffect(() => {
     fetchPlantData(currentPage === 1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters, currentPage]);
 
-  // --- Data Fetching ---
   const fetchPlantData = async (reset = false) => {
     try {
       setIsFetching(true);
@@ -108,25 +117,18 @@ const FQDatabase = ({ setView }) => {
         per_page: perPage,
         filters: JSON.stringify(filters),
       };
-      const response = await axios.get('/api/get_plant_data', { params });
-      const data = response.data;
-
-      if (reset) {
-        setPlantData(data.results);
-      } else {
-        setPlantData((prev) => [...prev, ...data.results]);
-      }
-
+      const { data } = await axios.get('/api/get_plant_data', { params });
+      if (reset) setPlantData(data.results);
+      else        setPlantData(prev => [...prev, ...data.results]);
       setTotal(data.total);
       setPages(data.pages);
-    } catch (error) {
-      console.error('Error fetching plant data:', error);
+    } catch (err) {
+      console.error(err);
     } finally {
       setIsFetching(false);
     }
   };
 
-  // Infinite Scroll
   const handleScroll = () => {
     const el = containerRef.current;
     if (
@@ -134,78 +136,60 @@ const FQDatabase = ({ setView }) => {
       !isFetching &&
       currentPage < pages
     ) {
-      setCurrentPage((prev) => prev + 1);
+      setCurrentPage(p => p + 1);
     }
   };
 
-  // --- Row Click (Edit or Delete) ---
-  const handleRowClick = (plant) => {
+  const handleRowClick = plant => {
     if (deleteMode) {
       setDeleteCandidate(plant);
-      setDeleteError('');
       setDeleteDialogOpen(true);
+      setDeleteError('');
     } else {
       setSelectedPlant(plant);
       setEditDialogOpen(true);
     }
   };
 
-  // --- Deletion Logic ---
   const handleDeleteConfirm = async () => {
-    if (!deleteCandidate?.barcode) return;
     try {
-      setDeleteError('');
       await axios.delete('/api/delete_plant_data', {
         data: { barcode: deleteCandidate.barcode },
       });
-      // Remove from local state
-      setPlantData((prev) =>
-        prev.filter((p) => p.barcode !== deleteCandidate.barcode)
-      );
+      setPlantData(prev => prev.filter(p => p.barcode !== deleteCandidate.barcode));
       setDeleteDialogOpen(false);
       setDeleteCandidate(null);
     } catch (err) {
-      console.error('Delete error:', err);
       setDeleteError(err?.response?.data?.message || 'Error deleting plant data.');
     }
   };
-  const handleCloseDeleteDialog = () => {
-    setDeleteCandidate(null);
-    setDeleteDialogOpen(false);
-  };
 
-  // --- Edit Logic ---
   const handleDialogClose = () => {
     setEditDialogOpen(false);
     setSelectedPlant(null);
   };
   const handleEditChange = (field, value) => {
-    setSelectedPlant((prev) => ({ ...prev, [field]: value }));
+    setSelectedPlant(prev => ({ ...prev, [field]: value }));
   };
   const handleSaveChanges = async () => {
-    if (!selectedPlant) return;
     try {
       await axios.post('/api/add_plant_data', selectedPlant);
-      setPlantData((prevData) =>
-        prevData.map((p) => (p.id === selectedPlant.id ? selectedPlant : p))
+      setPlantData(prev =>
+        prev.map(p => (p.id === selectedPlant.id ? selectedPlant : p))
       );
       handleDialogClose();
-    } catch (error) {
-      console.error('Error updating plant data:', error);
+    } catch (err) {
+      console.error(err);
     }
   };
 
-  // --- Column Selection Modal ---
-  const handleOpenColumnModal = () => setColumnModalOpen(true);
-  const handleCloseColumnModal = () => setColumnModalOpen(false);
-
-  const handleToggleColumn = (field) => {
+  const handleToggleColumn = field => {
     if (importantFields.includes(field)) return;
-    setSelectedFields((prev) => {
+    setSelectedFields(prev => {
       const copy = [...prev];
       if (copy.includes(field)) {
         if (copy.length <= MIN_COLUMNS) return prev;
-        return copy.filter((f) => f !== field);
+        return copy.filter(f => f !== field);
       } else {
         if (copy.length >= MAX_COLUMNS) return prev;
         copy.push(field);
@@ -214,35 +198,12 @@ const FQDatabase = ({ setView }) => {
     });
   };
 
-  // --- Query Builder Modal ---
-  const handleOpenQueryBuilder = () => setQueryBuilderOpen(true);
-  const handleCloseQueryBuilder = () => setQueryBuilderOpen(false);
-
-  const handleApplyFilters = (newFilters) => {
-    setFilters(newFilters);
-    setCurrentPage(1);
-    setQueryBuilderOpen(false);
+  const renderHeaderLabel = col => {
+    return importantFields.includes(col.field)
+      ? col.label
+      : abbreviations[col.label] || col.label;
   };
 
-  const handleRemoveFilter = (idx) => {
-    const updated = [...filters];
-    updated.splice(idx, 1);
-    setFilters(updated);
-    setCurrentPage(1);
-  };
-
-  const handleClearAllFilters = () => {
-    setFilters([]);
-    setCurrentPage(1);
-  };
-
-  // --- Helpers ---
-  const renderHeaderLabel = (col) => {
-    if (importantFields.includes(col.field)) return col.label;
-    return abbreviations[col.label] || col.label;
-  };
-
-  // --- Render ---
   return (
     <CssVarsProvider>
       <Box
@@ -262,15 +223,13 @@ const FQDatabase = ({ setView }) => {
             flexDirection: 'column',
             p: 3,
             borderRadius: 'md',
-            backgroundColor: '#ffffff',
+            backgroundColor: '#fff',
             width: '100%',
             maxWidth: '1200px',
-            boxSizing: 'border-box',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
             height: '90vh',
           }}
         >
-          {/* Home Icon */}
           <IconButton
             sx={{ position: 'absolute', top: 10, left: 10 }}
             onClick={() => setView('mainMenu')}
@@ -278,78 +237,64 @@ const FQDatabase = ({ setView }) => {
             <HomeIcon />
           </IconButton>
 
-          {/* Title */}
           <Typography level="h4" sx={{ fontWeight: 'bold', textAlign: 'center' }}>
             FQ Database
           </Typography>
 
-          {/* Top Buttons Row */}
           <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
-            <Button variant="soft" onClick={handleOpenQueryBuilder}>
+            <Button variant="soft" onClick={() => setQueryBuilderOpen(true)}>
               Advanced Search
             </Button>
-            <Button variant="soft" onClick={handleOpenColumnModal}>
-              Choose Columns Displayed 
+            <Button variant="soft" onClick={() => setColumnModalOpen(true)}>
+              Choose Columns Displayed
             </Button>
             <Button
               variant="soft"
-              onClick={() => window.location.href = '/api/download_plant_data_csv'}
+              onClick={() => (window.location.href = '/api/download_plant_data_csv')}
             >
               Download Excel
             </Button>
             <Button
               variant={deleteMode ? 'solid' : 'soft'}
               color={deleteMode ? 'danger' : 'neutral'}
-              onClick={() => setDeleteMode((prev) => !prev)}
+              onClick={() => setDeleteMode(m => !m)}
             >
               {deleteMode ? 'Cancel Delete Mode' : 'Delete Mode'}
             </Button>
           </Box>
 
-          {/* Filter Chips & Clear Row */}
           {filters.length > 0 && (
-            <Box sx={{ display: 'flex', gap: 1, mt: 1, flexWrap: 'wrap', alignItems: 'center' }}>
-              {filters.map((f, idx) => (
+            <Box sx={{ display: 'flex', gap: 1, mt: 1, flexWrap: 'wrap' }}>
+              {filters.map((f, i) => (
                 <Chip
-                  key={idx}
+                  key={i}
                   variant="solid"
                   color="primary"
-                  onClick={() => handleRemoveFilter(idx)}
-                  onDelete={() => handleRemoveFilter(idx)}
-                  sx={{
-                    cursor: 'pointer',
-                    transition: 'background-color 0.2s ease',
-                    '&:hover': {
-                      backgroundColor: 'red',
-                    },
+                  onDelete={() => {
+                    const up = [...filters];
+                    up.splice(i, 1);
+                    setFilters(up);
+                    setCurrentPage(1);
                   }}
                 >
                   {f.field} {f.operator} "{f.value}"
                 </Chip>
               ))}
-              <Button variant="soft" color="neutral" onClick={handleClearAllFilters}>
+              <Button variant="soft" onClick={() => { setFilters([]); setCurrentPage(1); }}>
                 Clear All
               </Button>
             </Box>
           )}
 
-          {/* Table Container */}
           <Box
             ref={containerRef}
-            sx={{
-              overflowY: 'auto',
-              overflowX: 'auto',
-              mt: 3,
-              width: '100%',
-              height: '100%',
-            }}
+            sx={{ overflowY: 'auto', overflowX: 'auto', mt: 3, height: '100%' }}
             onScroll={handleScroll}
           >
             <Table
-              aria-label="plant data table"
               stickyHeader
               sx={{
-                minWidth: '800px',
+                minWidth: 800,
                 tableLayout: 'fixed',
                 '& thead th': {
                   backgroundColor: theme.palette.background.level1,
@@ -359,32 +304,22 @@ const FQDatabase = ({ setView }) => {
                   overflow: 'hidden',
                   p: '0.5em',
                 },
-                '& th, & td': {
-                  whiteSpace: 'nowrap',
-                  p: '0.5em',
-                  fontSize: '0.875rem',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                },
-                '& tbody tr:hover': {
-                  backgroundColor: deleteMode ? '#ffcccc' : theme.palette.background.level2,
-                },
                 '& th.important-column, & td.important-column': {
                   whiteSpace: 'normal',
                   overflow: 'visible',
                   textOverflow: 'clip',
-                  width: '4.5em',
+                  width: '6em',
                 },
               }}
             >
               <thead>
                 <tr>
-                  {visibleColumns.map((col) => (
+                  {visibleColumns.map(col => (
                     <th
                       key={col.field}
                       className={importantFields.includes(col.field) ? 'important-column' : ''}
                     >
-                      <Tooltip title={col.label} placement="top">
+                      <Tooltip title={col.label}>
                         <span>{renderHeaderLabel(col)}</span>
                       </Tooltip>
                     </th>
@@ -392,18 +327,20 @@ const FQDatabase = ({ setView }) => {
                 </tr>
               </thead>
               <tbody>
-                {plantData.map((plant) => (
+                {plantData.map(plant => (
                   <tr
                     key={plant.id}
                     onClick={() => handleRowClick(plant)}
                     style={{ cursor: 'pointer' }}
                   >
-                    {visibleColumns.map((col) => (
+                    {visibleColumns.map(col => (
                       <td
                         key={col.field}
                         className={importantFields.includes(col.field) ? 'important-column' : ''}
                       >
-                        {plant[col.field] != null ? plant[col.field] : ''}
+                        {col.field === 'fruitfirm_timestamp'
+                          ? formatTimestamp(plant.fruitfirm_timestamp)
+                          : plant[col.field] ?? ''}
                       </td>
                     ))}
                   </tr>
@@ -412,7 +349,9 @@ const FQDatabase = ({ setView }) => {
                 {isFetching && (
                   <tr>
                     <td colSpan={visibleColumns.length}>
-                      <Typography sx={{ textAlign: 'center', p: 2 }}>Loading...</Typography>
+                      <Typography sx={{ textAlign: 'center', p: 2 }}>
+                        Loading...
+                      </Typography>
                     </td>
                   </tr>
                 )}
@@ -420,7 +359,6 @@ const FQDatabase = ({ setView }) => {
             </Table>
           </Box>
 
-          {/* Edit Dialog */}
           <EditPlantDataDialog
             open={editDialogOpen}
             onClose={handleDialogClose}
@@ -430,10 +368,9 @@ const FQDatabase = ({ setView }) => {
             handleSaveChanges={handleSaveChanges}
           />
 
-          {/* Column Selection Modal */}
           <ColumnSelectionModal
             open={columnModalOpen}
-            onClose={handleCloseColumnModal}
+            onClose={() => setColumnModalOpen(false)}
             sortedColumns={sortedColumns}
             selectedFields={selectedFields}
             handleToggleColumn={handleToggleColumn}
@@ -442,17 +379,15 @@ const FQDatabase = ({ setView }) => {
             MAX_COLUMNS={MAX_COLUMNS}
           />
 
-          {/* Delete Confirmation Modal */}
-          <Modal open={deleteDialogOpen} onClose={handleCloseDeleteDialog}>
+          <Modal open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
             <ModalDialog variant="outlined" color="danger" sx={{ maxWidth: 400, textAlign: 'center' }}>
               <Typography level="h5" sx={{ mb: 1 }}>
                 Confirm Deletion
               </Typography>
               {deleteCandidate && (
                 <Typography sx={{ mb: 2 }}>
-                  Are you sure you want to delete the row with:
-                  <br />
-                  <strong>Barcode:</strong> {deleteCandidate.barcode} <br />
+                  Are you sure you want to delete the row with:<br/>
+                  <strong>Barcode:</strong> {deleteCandidate.barcode}<br/>
                   <strong>Genotype:</strong> {deleteCandidate.genotype}
                 </Typography>
               )}
@@ -462,7 +397,7 @@ const FQDatabase = ({ setView }) => {
                 </Typography>
               )}
               <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
-                <Button variant="soft" onClick={handleCloseDeleteDialog}>
+                <Button variant="soft" onClick={() => setDeleteDialogOpen(false)}>
                   Cancel
                 </Button>
                 <Button variant="solid" color="danger" onClick={handleDeleteConfirm}>
@@ -472,11 +407,10 @@ const FQDatabase = ({ setView }) => {
             </ModalDialog>
           </Modal>
 
-          {/* Advanced Search / Query Builder Modal */}
           <QueryBuilderModal
             open={queryBuilderOpen}
-            onClose={handleCloseQueryBuilder}
-            onApply={handleApplyFilters}
+            onClose={() => setQueryBuilderOpen(false)}
+            onApply={(f) => { setFilters(f); setCurrentPage(1); }}
             initialFilters={filters}
           />
         </Box>
@@ -486,3 +420,4 @@ const FQDatabase = ({ setView }) => {
 };
 
 export default FQDatabase;
+
