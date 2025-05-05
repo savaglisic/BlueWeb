@@ -1,5 +1,14 @@
 // FQDatabase.jsx
-import React, { useState, useEffect, useRef } from 'react';
+// COMPLETE, UNTRUNCATED SOURCE
+// -----------------------------------------------------------------------------
+// Adds a “Yield View” toggle that swaps the primary plant-records table for a
+// pivoted-yield summary fed by /pivot_fruit_quality.  While Yield View is
+// active it also exposes a “Download Yield CSV” button that hits
+// /download_yield.  All styling, infinite-scroll behaviour, and Joy UI
+// components remain consistent with the original implementation.
+// -----------------------------------------------------------------------------
+
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -22,7 +31,9 @@ import EditPlantDataDialog from './EditPlantDialog';
 import QueryBuilderModal from './QueryBuilderModal';
 
 const FQDatabase = ({ setView }) => {
-  // --- Helpers ---
+  // ---------------------------------------------------------------------------
+  // Helpers
+  // ---------------------------------------------------------------------------
   const formatTimestamp = (ts) => {
     if (!ts) return '';
     const d = new Date(ts);
@@ -35,20 +46,40 @@ const FQDatabase = ({ setView }) => {
     return `${m}-${day} ${h}:${min}${ampm}`;
   };
 
-  // --- Constants ---
-  const MIN_COLUMNS = 2;
-  const MAX_COLUMNS = 22;
-  const LOCAL_STORAGE_KEY = 'FQDB_SELECTED_FIELDS';
+  // ---------------------------------------------------------------------------
+  // Constants
+  // ---------------------------------------------------------------------------
+  const MIN_COLUMNS        = 2;
+  const MAX_COLUMNS        = 22;
+  const LOCAL_STORAGE_KEY  = 'FQDB_SELECTED_FIELDS';
+  const perPage            = 20;
 
-  // --- Table & Pagination State ---
-  const [plantData, setPlantData] = useState([]);
-  const [total, setTotal] = useState(0);
-  const [pages, setPages] = useState(0);
-  const [currentPage, setCurrentPage] = useState(1);
-  const perPage = 20;
+  // ---------------------------------------------------------------------------
+  // Modes & View toggles
+  // ---------------------------------------------------------------------------
+  const [yieldView, setYieldView] = useState(false);
+
+  // ---------------------------------------------------------------------------
+  // Table & Pagination – Plant view
+  // ---------------------------------------------------------------------------
+  const [plantData,  setPlantData]  = useState([]);
+  const [total,      setTotal]      = useState(0);
+  const [pages,      setPages]      = useState(0);
+  const [currentPage,setCurrentPage]= useState(1);
   const [isFetching, setIsFetching] = useState(false);
 
-  // --- Column Selection State ---
+  // ---------------------------------------------------------------------------
+  // Table & Pagination – Yield view
+  // ---------------------------------------------------------------------------
+  const [yieldData,      setYieldData]      = useState([]);
+  const [yieldTotal,     setYieldTotal]     = useState(0);
+  const [yieldPages,     setYieldPages]     = useState(0);
+  const [yieldPage,      setYieldPage]      = useState(1);
+  const [isYieldFetch,   setIsYieldFetch]   = useState(false);
+
+  // ---------------------------------------------------------------------------
+  // Column selection (only for plant view)
+  // ---------------------------------------------------------------------------
   const defaultSelectedFields = [
     'barcode',
     'genotype',
@@ -62,7 +93,7 @@ const FQDatabase = ({ setView }) => {
     'brix',
     'tta',
     'week',
-    'fruitfirm_timestamp',    // ensure it’s selected by default
+    'fruitfirm_timestamp',
   ];
   const [selectedFields, setSelectedFields] = useState(() => {
     try {
@@ -74,52 +105,63 @@ const FQDatabase = ({ setView }) => {
   });
   const [columnModalOpen, setColumnModalOpen] = useState(false);
 
-  // --- Delete Mode State ---
-  const [deleteMode, setDeleteMode] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [deleteCandidate, setDeleteCandidate] = useState(null);
-  const [deleteError, setDeleteError] = useState('');
+  // ---------------------------------------------------------------------------
+  // Delete mode (plant view only)
+  // ---------------------------------------------------------------------------
+  const [deleteMode,         setDeleteMode]         = useState(false);
+  const [deleteDialogOpen,   setDeleteDialogOpen]   = useState(false);
+  const [deleteCandidate,    setDeleteCandidate]    = useState(null);
+  const [deleteError,        setDeleteError]        = useState('');
 
-  // --- Editing State ---
-  const [selectedPlant, setSelectedPlant] = useState(null);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  // ---------------------------------------------------------------------------
+  // Editing (plant view only)
+  // ---------------------------------------------------------------------------
+  const [selectedPlant,    setSelectedPlant]  = useState(null);
+  const [editDialogOpen,   setEditDialogOpen] = useState(false);
 
-  // --- Advanced Search State ---
-  const [filters, setFilters] = useState([]);
-  const [queryBuilderOpen, setQueryBuilderOpen] = useState(false);
+  // ---------------------------------------------------------------------------
+  // Advanced search (plant view only)
+  // ---------------------------------------------------------------------------
+  const [filters,            setFilters]          = useState([]);
+  const [queryBuilderOpen,   setQueryBuilderOpen] = useState(false);
 
-  // Refs/theme
+  // ---------------------------------------------------------------------------
+  // Refs & Theme
+  // ---------------------------------------------------------------------------
   const containerRef = useRef();
-  const theme = useTheme();
+  const theme        = useTheme();
 
-  // Sort columns by priority
-  const sortedColumns = getSortedColumns();
+  // ---------------------------------------------------------------------------
+  // Column ordering helpers (plant view)
+  // ---------------------------------------------------------------------------
+  const sortedColumns  = getSortedColumns();
   const visibleColumns = sortedColumns.filter(col =>
     selectedFields.includes(col.field)
   );
+  const renderHeaderLabel = (col) =>
+    importantFields.includes(col.field)
+      ? col.label
+      : abbreviations[col.label] || col.label;
 
-  // Persist selected columns
+  // Persist selected columns to localStorage
   useEffect(() => {
     localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(selectedFields));
   }, [selectedFields]);
 
-  // Fetch on filters or page change
-  useEffect(() => {
-    fetchPlantData(currentPage === 1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, currentPage]);
-
+  // ---------------------------------------------------------------------------
+  // Fetch handlers
+  // ---------------------------------------------------------------------------
   const fetchPlantData = async (reset = false) => {
     try {
       setIsFetching(true);
       const params = {
-        page: currentPage,
+        page   : currentPage,
         per_page: perPage,
         filters: JSON.stringify(filters),
       };
       const { data } = await axios.get('/api/get_plant_data', { params });
       if (reset) setPlantData(data.results);
-      else        setPlantData(prev => [...prev, ...data.results]);
+      else       setPlantData(prev => [...prev, ...data.results]);
       setTotal(data.total);
       setPages(data.pages);
     } catch (err) {
@@ -129,18 +171,79 @@ const FQDatabase = ({ setView }) => {
     }
   };
 
+   const fetchYieldData = async (reset = false) => {
+       try {
+         setIsYieldFetch(true);
+         const params    = { page: yieldPage, pageSize: perPage };
+         const response  = await axios.get('/api/pivot_fruit_quality', { params });
+    
+         // Robustly pull rows & total – fall back to sensible defaults
+        const rows   = Array.isArray(response.data?.data) ? response.data.data : [];
+         const total  = Number(response.data?.total ?? rows.length);
+    
+         setYieldTotal(total);
+         setYieldPages(Math.ceil(total / perPage));
+         setYieldData(prev =>
+         reset ? rows : [...prev, ...rows]
+        );
+       } catch (err) {
+         console.error('Error fetching yield data:', err);
+      } finally {
+       setIsYieldFetch(false);
+       }
+     };
+
+  // ---------------------------------------------------------------------------
+  // Effect triggers
+  // ---------------------------------------------------------------------------
+  // Plant data – trigger on filters or page
+  useEffect(() => {
+    if (!yieldView) fetchPlantData(currentPage === 1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters, currentPage, yieldView]);
+
+  // Yield data – trigger on yieldPage
+  useEffect(() => {
+    if (yieldView) fetchYieldData(yieldPage === 1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [yieldPage, yieldView]);
+
+  // Reset paging when toggling views
+  useEffect(() => {
+    if (yieldView) {
+      setYieldPage(1);
+      setYieldData([]);
+    } else {
+      setCurrentPage(1);
+      setPlantData([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [yieldView]);
+
+  // ---------------------------------------------------------------------------
+  // Infinite scroll handler
+  // ---------------------------------------------------------------------------
   const handleScroll = () => {
     const el = containerRef.current;
-    if (
-      el.scrollHeight - el.scrollTop <= el.clientHeight + 50 &&
-      !isFetching &&
-      currentPage < pages
-    ) {
-      setCurrentPage(p => p + 1);
+    if (!el) return;
+    const closeToBottom = el.scrollHeight - el.scrollTop <= el.clientHeight + 50;
+
+    if (yieldView) {
+      if (closeToBottom && !isYieldFetch && yieldPage < yieldPages) {
+        setYieldPage(p => p + 1);
+      }
+    } else {
+      if (closeToBottom && !isFetching && currentPage < pages) {
+        setCurrentPage(p => p + 1);
+      }
     }
   };
 
-  const handleRowClick = plant => {
+  // ---------------------------------------------------------------------------
+  // Table row click handlers
+  // ---------------------------------------------------------------------------
+  const handleRowClick = (plant) => {
+    if (yieldView) return;           // No row actions in Yield View
     if (deleteMode) {
       setDeleteCandidate(plant);
       setDeleteDialogOpen(true);
@@ -151,6 +254,9 @@ const FQDatabase = ({ setView }) => {
     }
   };
 
+  // ---------------------------------------------------------------------------
+  // CRUD actions (plant view only)
+  // ---------------------------------------------------------------------------
   const handleDeleteConfirm = async () => {
     try {
       await axios.delete('/api/delete_plant_data', {
@@ -183,7 +289,10 @@ const FQDatabase = ({ setView }) => {
     }
   };
 
-  const handleToggleColumn = field => {
+  // ---------------------------------------------------------------------------
+  // Column toggling (plant view only)
+  // ---------------------------------------------------------------------------
+  const handleToggleColumn = (field) => {
     if (importantFields.includes(field)) return;
     setSelectedFields(prev => {
       const copy = [...prev];
@@ -198,38 +307,44 @@ const FQDatabase = ({ setView }) => {
     });
   };
 
-  const renderHeaderLabel = col => {
-    return importantFields.includes(col.field)
-      ? col.label
-      : abbreviations[col.label] || col.label;
-  };
+  // ---------------------------------------------------------------------------
+  // Yield-view column list (derived from API payload)
+  // ---------------------------------------------------------------------------
+   const yieldColumns = useMemo(() => {
+       if (!Array.isArray(yieldData) || yieldData.length === 0) return [];
+       return Object.keys(yieldData[0]);
+   }, [yieldData]);
 
+  // ---------------------------------------------------------------------------
+  // Render
+  // ---------------------------------------------------------------------------
   return (
     <CssVarsProvider>
       <Box
         sx={{
-          display: 'flex',
-          height: '100vh',
-          width: '100vw',
+          display:        'flex',
+          height:         '100vh',
+          width:          '100vw',
           justifyContent: 'center',
-          alignItems: 'center',
-          backgroundColor: '#87CEEB',
+          alignItems:     'center',
+          backgroundColor:'#87CEEB',
         }}
       >
         <Box
           sx={{
-            position: 'relative',
-            display: 'flex',
+            position:      'relative',
+            display:       'flex',
             flexDirection: 'column',
-            p: 3,
-            borderRadius: 'md',
-            backgroundColor: '#fff',
-            width: '100%',
-            maxWidth: '1200px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-            height: '90vh',
+            p:             3,
+            borderRadius:  'md',
+            backgroundColor:'#fff',
+            width:         '100%',
+            maxWidth:      '1200px',
+            boxShadow:     '0 4px 12px rgba(0,0,0,0.1)',
+            height:        '90vh',
           }}
         >
+          {/* HOME BUTTON ---------------------------------------------------- */}
           <IconButton
             sx={{ position: 'absolute', top: 10, left: 10 }}
             onClick={() => setView('mainMenu')}
@@ -237,33 +352,62 @@ const FQDatabase = ({ setView }) => {
             <HomeIcon />
           </IconButton>
 
+          {/* TITLE ---------------------------------------------------------- */}
           <Typography level="h4" sx={{ fontWeight: 'bold', textAlign: 'center' }}>
-            FQ Database
+            {yieldView ? 'Yield Summary' : 'FQ Database'}
           </Typography>
 
-          <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
-            <Button variant="soft" onClick={() => setQueryBuilderOpen(true)}>
-              Advanced Search
-            </Button>
-            <Button variant="soft" onClick={() => setColumnModalOpen(true)}>
-              Choose Columns Displayed
-            </Button>
+          {/* ACTION BAR ----------------------------------------------------- */}
+          <Box sx={{ display: 'flex', gap: 1, mt: 2, flexWrap: 'wrap' }}>
+            {/* Plant-view buttons */}
+            {!yieldView && (
+              <>
+                <Button variant="soft" onClick={() => setQueryBuilderOpen(true)}>
+                  Advanced Search
+                </Button>
+                <Button variant="soft" onClick={() => setColumnModalOpen(true)}>
+                  Choose Columns Displayed
+                </Button>
+                <Button
+                  variant="soft"
+                  onClick={() => (window.location.href = '/api/download_plant_data_csv')}
+                >
+                  Download Excel
+                </Button>
+                <Button
+                  variant={deleteMode ? 'solid' : 'soft'}
+                  color={deleteMode ? 'danger' : 'neutral'}
+                  onClick={() => setDeleteMode(m => !m)}
+                >
+                  {deleteMode ? 'Cancel Delete Mode' : 'Delete Mode'}
+                </Button>
+              </>
+            )}
+
+            {/* Yield-view specific buttons */}
+            {yieldView && (
+              <>
+                <Button
+                  variant="soft"
+                  onClick={() => (window.location.href = '/download_yield')}
+                >
+                  Download Yield CSV
+                </Button>
+              </>
+            )}
+
+            {/* Yield View TOGGLE (always visible) */}
             <Button
-              variant="soft"
-              onClick={() => (window.location.href = '/api/download_plant_data_csv')}
+              variant={yieldView ? 'solid' : 'soft'}
+              color={yieldView ? 'primary' : 'neutral'}
+              onClick={() => setYieldView(v => !v)}
             >
-              Download Excel
-            </Button>
-            <Button
-              variant={deleteMode ? 'solid' : 'soft'}
-              color={deleteMode ? 'danger' : 'neutral'}
-              onClick={() => setDeleteMode(m => !m)}
-            >
-              {deleteMode ? 'Cancel Delete Mode' : 'Delete Mode'}
+              {yieldView ? 'Exit Yield View' : 'Yield View'}
             </Button>
           </Box>
 
-          {filters.length > 0 && (
+          {/* FILTER CHIP BAR – plant view only ----------------------------- */}
+          {!yieldView && filters.length > 0 && (
             <Box sx={{ display: 'flex', gap: 1, mt: 1, flexWrap: 'wrap' }}>
               {filters.map((f, i) => (
                 <Chip
@@ -280,12 +424,16 @@ const FQDatabase = ({ setView }) => {
                   {f.field} {f.operator} "{f.value}"
                 </Chip>
               ))}
-              <Button variant="soft" onClick={() => { setFilters([]); setCurrentPage(1); }}>
+              <Button
+                variant="soft"
+                onClick={() => { setFilters([]); setCurrentPage(1); }}
+              >
                 Clear All
               </Button>
             </Box>
           )}
 
+          {/* DATA TABLE ----------------------------------------------------- */}
           <Box
             ref={containerRef}
             sx={{ overflowY: 'auto', overflowX: 'auto', mt: 3, height: '100%' }}
@@ -314,41 +462,58 @@ const FQDatabase = ({ setView }) => {
             >
               <thead>
                 <tr>
-                  {visibleColumns.map(col => (
-                    <th
-                      key={col.field}
-                      className={importantFields.includes(col.field) ? 'important-column' : ''}
-                    >
-                      <Tooltip title={col.label}>
-                        <span>{renderHeaderLabel(col)}</span>
-                      </Tooltip>
-                    </th>
-                  ))}
+                  {yieldView
+                    ? yieldColumns.map(col => (
+                        <th key={col}>{col}</th>
+                      ))
+                    : visibleColumns.map(col => (
+                        <th
+                          key={col.field}
+                          className={importantFields.includes(col.field) ? 'important-column' : ''}
+                        >
+                          <Tooltip title={col.label}>
+                            <span>{renderHeaderLabel(col)}</span>
+                          </Tooltip>
+                        </th>
+                      ))}
                 </tr>
               </thead>
-              <tbody>
-                {plantData.map(plant => (
-                  <tr
-                    key={plant.id}
-                    onClick={() => handleRowClick(plant)}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    {visibleColumns.map(col => (
-                      <td
-                        key={col.field}
-                        className={importantFields.includes(col.field) ? 'important-column' : ''}
-                      >
-                        {col.field === 'fruitfirm_timestamp'
-                          ? formatTimestamp(plant.fruitfirm_timestamp)
-                          : plant[col.field] ?? ''}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
 
-                {isFetching && (
+              <tbody>
+                {/* YIELD ROWS ------------------------------------------------ */}
+                {yieldView && Array.isArray(yieldData) && yieldData.map((row, idx) => (
+                    <tr key={idx}>
+                      {yieldColumns.map(col => (
+                        <td key={col}>{row[col]}</td>
+                      ))}
+                    </tr>
+                  ))}
+
+                {/* PLANT ROWS ------------------------------------------------ */}
+                {!yieldView &&
+                  plantData.map(plant => (
+                    <tr
+                      key={plant.id}
+                      onClick={() => handleRowClick(plant)}
+                      style={{ cursor: yieldView ? 'default' : 'pointer' }}
+                    >
+                      {visibleColumns.map(col => (
+                        <td
+                          key={col.field}
+                          className={importantFields.includes(col.field) ? 'important-column' : ''}
+                        >
+                          {col.field === 'fruitfirm_timestamp'
+                            ? formatTimestamp(plant.fruitfirm_timestamp)
+                            : plant[col.field] ?? ''}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+
+                {/* LOADING FOOTER ------------------------------------------- */}
+                {(isFetching || isYieldFetch) && (
                   <tr>
-                    <td colSpan={visibleColumns.length}>
+                    <td colSpan={yieldView ? yieldColumns.length || 1 : visibleColumns.length}>
                       <Typography sx={{ textAlign: 'center', p: 2 }}>
                         Loading...
                       </Typography>
@@ -359,60 +524,69 @@ const FQDatabase = ({ setView }) => {
             </Table>
           </Box>
 
-          <EditPlantDataDialog
-            open={editDialogOpen}
-            onClose={handleDialogClose}
-            sortedColumns={sortedColumns}
-            selectedPlant={selectedPlant}
-            handleEditChange={handleEditChange}
-            handleSaveChanges={handleSaveChanges}
-          />
+          {/* MODALS – Plant view only -------------------------------------- */}
+          {!yieldView && (
+            <>
+              <EditPlantDataDialog
+                open={editDialogOpen}
+                onClose={handleDialogClose}
+                sortedColumns={sortedColumns}
+                selectedPlant={selectedPlant}
+                handleEditChange={handleEditChange}
+                handleSaveChanges={handleSaveChanges}
+              />
 
-          <ColumnSelectionModal
-            open={columnModalOpen}
-            onClose={() => setColumnModalOpen(false)}
-            sortedColumns={sortedColumns}
-            selectedFields={selectedFields}
-            handleToggleColumn={handleToggleColumn}
-            importantFields={importantFields}
-            MIN_COLUMNS={MIN_COLUMNS}
-            MAX_COLUMNS={MAX_COLUMNS}
-          />
+              <ColumnSelectionModal
+                open={columnModalOpen}
+                onClose={() => setColumnModalOpen(false)}
+                sortedColumns={sortedColumns}
+                selectedFields={selectedFields}
+                handleToggleColumn={handleToggleColumn}
+                importantFields={importantFields}
+                MIN_COLUMNS={MIN_COLUMNS}
+                MAX_COLUMNS={MAX_COLUMNS}
+              />
 
-          <Modal open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-            <ModalDialog variant="outlined" color="danger" sx={{ maxWidth: 400, textAlign: 'center' }}>
-              <Typography level="h5" sx={{ mb: 1 }}>
-                Confirm Deletion
-              </Typography>
-              {deleteCandidate && (
-                <Typography sx={{ mb: 2 }}>
-                  Are you sure you want to delete the row with:<br/>
-                  <strong>Barcode:</strong> {deleteCandidate.barcode}<br/>
-                  <strong>Genotype:</strong> {deleteCandidate.genotype}
-                </Typography>
-              )}
-              {deleteError && (
-                <Typography color="danger" sx={{ mb: 1 }}>
-                  {deleteError}
-                </Typography>
-              )}
-              <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
-                <Button variant="soft" onClick={() => setDeleteDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button variant="solid" color="danger" onClick={handleDeleteConfirm}>
-                  Delete
-                </Button>
-              </Box>
-            </ModalDialog>
-          </Modal>
+              <Modal open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+                <ModalDialog
+                  variant="outlined"
+                  color="danger"
+                  sx={{ maxWidth: 400, textAlign: 'center' }}
+                >
+                  <Typography level="h5" sx={{ mb: 1 }}>
+                    Confirm Deletion
+                  </Typography>
+                  {deleteCandidate && (
+                    <Typography sx={{ mb: 2 }}>
+                      Are you sure you want to delete the row with:<br/>
+                      <strong>Barcode:</strong> {deleteCandidate.barcode}<br/>
+                      <strong>Genotype:</strong> {deleteCandidate.genotype}
+                    </Typography>
+                  )}
+                  {deleteError && (
+                    <Typography color="danger" sx={{ mb: 1 }}>
+                      {deleteError}
+                    </Typography>
+                  )}
+                  <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2 }}>
+                    <Button variant="soft" onClick={() => setDeleteDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button variant="solid" color="danger" onClick={handleDeleteConfirm}>
+                      Delete
+                    </Button>
+                  </Box>
+                </ModalDialog>
+              </Modal>
 
-          <QueryBuilderModal
-            open={queryBuilderOpen}
-            onClose={() => setQueryBuilderOpen(false)}
-            onApply={(f) => { setFilters(f); setCurrentPage(1); }}
-            initialFilters={filters}
-          />
+              <QueryBuilderModal
+                open={queryBuilderOpen}
+                onClose={() => setQueryBuilderOpen(false)}
+                onApply={(f) => { setFilters(f); setCurrentPage(1); }}
+                initialFilters={filters}
+              />
+            </>
+          )}
         </Box>
       </Box>
     </CssVarsProvider>
@@ -420,4 +594,3 @@ const FQDatabase = ({ setView }) => {
 };
 
 export default FQDatabase;
-
