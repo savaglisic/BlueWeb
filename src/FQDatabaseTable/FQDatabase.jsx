@@ -389,7 +389,7 @@ const FQDatabase = ({ setView }) => {
               <>
                 <Button
                   variant="soft"
-                  onClick={() => (window.location.href = '/download_yield')}
+                  onClick={() => (window.location.href = '/api/download_yield')}
                 >
                   Download Yield CSV
                 </Button>
