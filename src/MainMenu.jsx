@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Typography, IconButton, CssVarsProvider, Sheet } from '@mui/joy';
+import { Box, Typography, IconButton } from '@mui/joy'; // Sheet removed
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import SearchIcon from '@mui/icons-material/Search';
 import DatabaseIcon from '@mui/icons-material/Storage';
@@ -7,15 +7,13 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import LogoutIcon from '@mui/icons-material/Logout';
 import ScienceIcon from '@mui/icons-material/Science';
 import '@fontsource/roboto';
+import PageLayout from './PageLayout'; // Import PageLayout
 
 const MainMenu = ({ setView }) => {
-  // Store userGroup in state
   const [userGroup, setUserGroup] = useState(() => localStorage.getItem('userGroup') || '');
-  
-  // Also store userEmail in state, so we can debug it properly
   const [userEmail, setUserEmail] = useState(() => {
     const storedEmail = localStorage.getItem('userEmail') || '';
-    return storedEmail.trim().toLowerCase(); // optionally normalizing for debugging
+    return storedEmail.trim().toLowerCase();
   });
   
   const croppedEmail = userEmail.split('@')[0];
@@ -27,7 +25,6 @@ const MainMenu = ({ setView }) => {
     window.location.reload();
   };
 
-  // Log for debugging
   useEffect(() => {
     console.log('Debug: userEmail =', userEmail);
     console.log('Debug: userGroup =', userGroup);
@@ -51,7 +48,6 @@ const MainMenu = ({ setView }) => {
       }
     };
 
-    // Only fetch if we have an email but no group yet
     if (userEmail && !userGroup) {
       fetchUserGroup();
     } else if (!userEmail) {
@@ -59,104 +55,10 @@ const MainMenu = ({ setView }) => {
     }
   }, [userEmail, userGroup]);
 
-  const renderButtons = () => {
-    // Debugging logs:
-    console.log('renderButtons: userGroup =', userGroup, ' userEmail =', userEmail);
-  
-    // Check admin or special email first
-    if (userGroup === 'admin' || userEmail === 'savaglisic@ufl.edu') {
-      // Admin-level (or special email) buttons
-      return (
-        <>
-          <IconButton
-            sx={buttonStyles}
-            variant="solid"
-            onClick={() => setView('addSamples')}
-          >
-            <AddCircleOutlineIcon fontSize="large" />
-            <Typography sx={{ color: 'white', marginTop: '8px' }}>
-              Add Samples
-            </Typography>
-          </IconButton>
-          <IconButton
-            sx={buttonStyles}
-            variant="solid"
-            onClick={() => setView('fqLab')}
-          >
-            <ScienceIcon fontSize="large" />
-            <Typography sx={{ color: 'white', marginTop: '8px' }}>
-              FQ Lab
-            </Typography>
-          </IconButton>
-          <IconButton
-            sx={buttonStyles}
-            variant="solid"
-            onClick={() => setView('fqDatabase')}
-          >
-            <DatabaseIcon fontSize="large" />
-            <Typography sx={{ color: 'white', marginTop: '8px' }}>
-              FQ Database
-            </Typography>
-          </IconButton>
-          <IconButton
-            sx={buttonStyles}
-            variant="solid"
-            onClick={() => setView('searchPedigree')}
-          >
-            <SearchIcon fontSize="large" />
-            <Typography sx={{ color: 'white', marginTop: '8px' }}>
-              Pedigree Database
-            </Typography>
-          </IconButton>
-          <IconButton
-            sx={buttonStyles}
-            variant="solid"
-            onClick={() => setView('configureApp')}
-          >
-            <SettingsIcon fontSize="large" />
-            <Typography sx={{ color: 'white', marginTop: '8px' }}>
-              Configure BlueWeb
-            </Typography>
-          </IconButton>
-        </>
-      );
-  
-    } else if (userGroup === 'ops') {
-      // Ops-level buttons
-      return (
-        <>
-          <IconButton
-            sx={buttonStyles}
-            variant="solid"
-            onClick={() => setView('addSamples')}
-          >
-            <AddCircleOutlineIcon fontSize="large" />
-            <Typography sx={{ color: 'white', marginTop: '8px' }}>
-              Add Samples
-            </Typography>
-          </IconButton>
-          <IconButton
-            sx={buttonStyles}
-            variant="solid"
-            onClick={() => setView('fqLab')}
-          >
-            <ScienceIcon fontSize="large" />
-            <Typography sx={{ color: 'white', marginTop: '8px' }}>
-              FQ Lab
-            </Typography>
-          </IconButton>
-        </>
-      );
-  
-    } else {
-      return null;
-    }
-  };
-
   const buttonStyles = {
     flex: 1,
     padding: 2,
-    backgroundColor: '#1976d2',
+    backgroundColor: '#1976d2', // These are specific to buttons, not the card
     color: 'white',
     borderRadius: '12px',
     boxShadow: 3,
@@ -169,76 +71,93 @@ const MainMenu = ({ setView }) => {
     justifyContent: 'center',
   };
 
+  const renderButtons = () => {
+    console.log('renderButtons: userGroup =', userGroup, ' userEmail =', userEmail);
+  
+    if (userGroup === 'admin' || userEmail === 'savaglisic@ufl.edu') {
+      return (
+        <>
+          <IconButton sx={buttonStyles} variant="solid" onClick={() => setView('addSamples')}>
+            <AddCircleOutlineIcon fontSize="large" />
+            <Typography sx={{ color: 'white', marginTop: '8px' }}>Add Samples</Typography>
+          </IconButton>
+          <IconButton sx={buttonStyles} variant="solid" onClick={() => setView('fqLab')}>
+            <ScienceIcon fontSize="large" />
+            <Typography sx={{ color: 'white', marginTop: '8px' }}>FQ Lab</Typography>
+          </IconButton>
+          <IconButton sx={buttonStyles} variant="solid" onClick={() => setView('fqDatabase')}>
+            <DatabaseIcon fontSize="large" />
+            <Typography sx={{ color: 'white', marginTop: '8px' }}>FQ Database</Typography>
+          </IconButton>
+          <IconButton sx={buttonStyles} variant="solid" onClick={() => setView('searchPedigree')}>
+            <SearchIcon fontSize="large" />
+            <Typography sx={{ color: 'white', marginTop: '8px' }}>Pedigree Database</Typography>
+          </IconButton>
+          <IconButton sx={buttonStyles} variant="solid" onClick={() => setView('configureApp')}>
+            <SettingsIcon fontSize="large" />
+            <Typography sx={{ color: 'white', marginTop: '8px' }}>Configure BlueWeb</Typography>
+          </IconButton>
+        </>
+      );
+    } else if (userGroup === 'ops') {
+      return (
+        <>
+          <IconButton sx={buttonStyles} variant="solid" onClick={() => setView('addSamples')}>
+            <AddCircleOutlineIcon fontSize="large" />
+            <Typography sx={{ color: 'white', marginTop: '8px' }}>Add Samples</Typography>
+          </IconButton>
+          <IconButton sx={buttonStyles} variant="solid" onClick={() => setView('fqLab')}>
+            <ScienceIcon fontSize="large" />
+            <Typography sx={{ color: 'white', marginTop: '8px' }}>FQ Lab</Typography>
+          </IconButton>
+        </>
+      );
+    } else {
+      return null;
+    }
+  };
+
   return (
-    <CssVarsProvider>
-      <Box
-        sx={{
-          display: 'flex',
-          height: '100vh',
-          width: '100vw',
-          justifyContent: 'center',
-          alignItems: 'center',
-          backgroundColor: '#87CEEB',
-        }}
-      >
-        <Sheet
-          variant="outlined"
+    <PageLayout maxWidth="600px" innerSheetSx={{ gap: 3 }}> {/* Passing gap: 3 */}
+      <img
+        src="/blueweblogo.png"
+        alt="Blue Web Logo"
+        style={{ width: '200px', height: 'auto', marginBottom: '20px' }}
+      />
+
+      {errorMessage ? (
+        <Typography color="error">{errorMessage}</Typography>
+      ) : (
+        <Box
           sx={{
             display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            padding: 3,
-            gap: 3,
-            borderRadius: 'md',
-            boxShadow: 'md',
-            backgroundColor: '#ffffff',
+            flexDirection: { xs: 'column', sm: 'row' },
+            gap: 2, // This gap is for the buttons inside the Box
             width: '100%',
-            maxWidth: '600px',
-            boxSizing: 'border-box',
+            justifyContent: 'center',
           }}
         >
-          <img
-            src="/blueweblogo.png"
-            alt="Blue Web Logo"
-            style={{ width: '200px', height: 'auto', marginBottom: '20px' }}
-          />
+          {renderButtons()}
+        </Box>
+      )}
 
-          {errorMessage ? (
-            <Typography color="error">{errorMessage}</Typography>
-          ) : (
-            <Box
-              sx={{
-                display: 'flex',
-                flexDirection: { xs: 'column', sm: 'row' },
-                gap: 2,
-                width: '100%',
-                justifyContent: 'center',
-              }}
-            >
-              {renderButtons()}
-            </Box>
-          )}
-
-          <Box sx={{ display: 'flex', alignItems: 'center', marginTop: 1 }}>
-            <Typography sx={{ color: 'black', marginRight: 1 }}>{croppedEmail}</Typography>
-            <IconButton
-              onClick={handleLogout}
-              sx={{
-                color: 'white',
-                '&:hover': {
-                  backgroundColor: '#d32f2f',
-                },
-              }}
-            >
-              <LogoutIcon />
-            </IconButton>
-          </Box>
-        </Sheet>
+      <Box sx={{ display: 'flex', alignItems: 'center', marginTop: 1 }}>
+        <Typography sx={{ color: 'black', marginRight: 1 }}>{croppedEmail}</Typography>
+        <IconButton
+          onClick={handleLogout}
+          sx={{
+            color: 'black', 
+            '&:hover': {
+              backgroundColor: '#d32f2f',
+              color: 'white', 
+            },
+          }}
+        >
+          <LogoutIcon />
+        </IconButton>
       </Box>
-    </CssVarsProvider>
+    </PageLayout>
   );
 };
 
 export default MainMenu;
-
-
