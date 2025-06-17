@@ -366,12 +366,20 @@ const FQDatabase = ({ setView }) => {
                     <tr key={idx}>
                       {yieldColumns.map(col => {
                         const value = row[col];
+                        let displayValue = value;
+                        if (typeof value === 'number' && !Number.isInteger(value)) {
+                          displayValue = value.toFixed(2);
+                        } else if (typeof value === 'string' && !isNaN(parseFloat(value)) && value.trim() !== '' && value.indexOf('.') !== -1) {
+                          // If it's a string that looks like a float, format it as well
+                          const num = parseFloat(value);
+                          displayValue = isNaN(num) ? value : num.toFixed(2);
+                        }
                         return (
                           <td
                             key={col}
                             style={value === 0 || value === '0' ? { backgroundColor: 'yellow' } : {}}
                           >
-                            {value}
+                            {displayValue}
                           </td>
                         );
                       })}
